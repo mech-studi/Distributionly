@@ -1,18 +1,21 @@
 #  Distributionly a Blockchain-based DNS
 
+`This project is an assignment for the BCOLN lecture at the University of Zurich.`
+
 ## Brief Description & Ideation
 
 The goal of this project is to rebuild the basic functionality of a Domain Name System (DNS) based on a blockchain and smart contracts.
 
 ![Use Case Diagram](./doc/images/Distributionly-Diagrams-UseCase.png "Use Cases")
 
-The system must be able to resolve human-readable names to technical addresses such as IPv4, IPv6 (and maybe even blockchain .bit .eth or IPFS addresses). Technical top-level domains are managed by the system administrator. A domain owner can then register his subdomain to a known top level domain. A sub domain can have other sub domains. Optionally the system could provide a domain rating system or a domain certification service (note that X.509 PKI functionality is out of scope). 
+The system must be able to resolve human-readable names to technical addresses. A domain owner can register his subdomain to a known top level domain. A subdomain can have other subdomains. Optionally the system could allow a domain abuse rating system or a domain certification service (note that X.509 PKI functionality is out of scope). 
 
-A simple domain rating system could be that everyone except the domain owner can up-/downvote the domain. The domain owner cannot vote for his domain, but can flush all the ratings of his domain (yes ... this needs much refinement ^^'').
+- A simple domain abuse reporting system could be that everyone except the domain owner report incorrect behavior. The domain owner can flush all reported missusages and reset his domain `TODO: refine reporting concept`.
+- The focus lies on IPv4 and IPv6 addresses. Other address schemes are out of scope for this project. Technical top-level domains are managed by the system administrator.
+- The name resolver functionality can be implemented in an external python script or a smart contract. 
+- The registration and the certification of a subdomain costs ether. Can we buy or bid on a domain name? `TODO: refine economic concept`.
+- Bootstraping and registration of top level domains is out of scope. 
 
-The name resolver functionality can be implemented in an external python script or a smart contract. 
-
-The registration and the certification of a subdomain costs ether.
 
 ![Container Diagram](./doc/images/Distributionly-Diagrams-C2-Container.png "Container Diagram")
 
@@ -28,6 +31,8 @@ The registration and the certification of a subdomain costs ether.
 
     - Pay for subdomain entries
     - Pay for subdomain entry certification?
+    - Buy a subdomain from someone
+    - Bid for a subdomain
 
 1. The user must interact with the DApp via a Graphical User Interface (GUI), for example, a Web-based one.
 
