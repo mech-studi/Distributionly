@@ -36,7 +36,7 @@ The system must be able to resolve human-readable names to technical addresses. 
 
 1. The user must interact with the DApp via a Graphical User Interface (GUI), for example, a Web-based one.
 
-    - Web interface to query names and display DNS entries
+    - Web interface to query names, display and register DNS entries
 
 1. The group must deliver a self-contained report documenting the SC, its operation, and the source code.
 
