@@ -1,0 +1,10 @@
+let instance = await SimpleAuction.deployed()
+let accounts = await web3.eth.getAccounts()
+instance.bid({from:accounts[0], value:1})
+
+
+
+// new contract 
+truffle(develop)> let newInstance = await MetaCoin.new()
+truffle(develop)> newInstance.address
+'0x64307b67314b584b1E3Be606255bd683C835A876'
