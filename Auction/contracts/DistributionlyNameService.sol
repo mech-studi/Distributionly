@@ -1,5 +1,6 @@
-pragma solidity >=0.4.25 <0.7.0;
+pragma solidity >=0.5.0 <0.7.0;
 
+import "./DistributionlyNameAuction.sol";
 
 contract DistributionlyNameService {
 
@@ -13,7 +14,11 @@ contract DistributionlyNameService {
         bool isManaged;
     }
 
+    mapping(bytes32 => address) public auctions;
+
     mapping(bytes32 => MgntDomain) public domains;
+
+    constructor() public {}
 
     function hashDomain(string memory domain) private pure returns (bytes32)  {
         return keccak256(abi.encodePacked(domain));
@@ -30,11 +35,21 @@ contract DistributionlyNameService {
 
     function resolveDomain(string memory domain) public view returns (string memory) {
         bytes32 dHash = hashDomain(domain);
-        MgntDomain storage d = domains[dHash];onlyOwner
+        MgntDomain storage d = domains[dHash];
         if(d.isManaged) {
             return d.ipv4;
         }
         return "unknown";
     }
+
+    function startDomainAuction(string memory domain) public returns (address) {
+        bytes32 dHash = hashDomain(domain);
+        DistributionlyNameAuction auction = new DistributionlyNameAuction(address(this), 10000000, address(uint160(address(this))));
+        auctions[dHash] = address(auction);
+        return auctions[dHash];
+    }
+
+
+
 
 }
