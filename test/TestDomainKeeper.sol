@@ -33,4 +33,31 @@ contract TestDomainKeeper {
             "Curent bid should be 3."
         );
     }
+
+    function testHigherBid() public {
+        DomainKeeper keeper = new DomainKeeper();
+
+        string memory domain = "test.test";
+
+        AssertBool.isFalse(
+            keeper.getAuctionStateExists(domain),
+            "Auction should no exists at the beginning"
+        );
+
+        // address(keeper).call.gas(500000).value(3)("bid", [domain]);
+        // keeper.bid.gas(220000).value(3);\
+        keeper.bid.value(1)(domain);
+        keeper.bid.value(2)(domain);
+
+        AssertBool.isTrue(
+            keeper.getAuctionStateExists(domain),
+            "Auction must exists after first bid."
+        );
+
+        AssertUint.equal(
+            keeper.getAuctionStateBid(domain),
+            2,
+            "Curent highest bid should be 2."
+        );
+    }
 }
