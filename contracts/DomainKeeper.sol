@@ -1,5 +1,6 @@
 pragma solidity >=0.5.1 <0.7.0;
 
+
 contract DomainKeeper {
     struct iDomain {
         uint256 _id;
@@ -170,7 +171,7 @@ contract DomainKeeper {
             // It is always safer to let the recipients
             // withdraw their money themselves.
             //auctions[dh].pendingReturns[auctions[dh]
-             //  .highestBidder] += auctions[dh].highestBid;
+            //  .highestBidder] += auctions[dh].highestBid;
         }
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
@@ -178,13 +179,27 @@ contract DomainKeeper {
         emit HighestBidIncreased(msg.sender, msg.value);
     }
 
-    function getAuctionState(string memory _domain)
+    function getAuctionStateBidder(string memory _domain)
+        public
+        view
+        returns (address)
+    {
+        return (auctions[hashDomain(_domain)].highestBidder);
+    }
+
+    function getAuctionStateBid(string memory _domain)
         public
         view
         returns (uint256)
     {
-        bytes32 dh = hashDomain(_domain);
-        // iAuction memory a = auctions[dh];
-        return (auctions[dh].highestBid);
+        return (auctions[hashDomain(_domain)].highestBid);
+    }
+
+    function getAuctionStateExists(string memory _domain)
+        public
+        view
+        returns (bool)
+    {
+        return (auctions[hashDomain(_domain)].exists);
     }
 }
