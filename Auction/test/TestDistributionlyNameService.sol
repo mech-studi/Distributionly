@@ -20,4 +20,21 @@ contract TestDistributionlyNameService {
             "Should return an auction address"
         );
     }
+
+    function testRequestDomain() public {
+        DistributionlyNameService service = new DistributionlyNameService();
+
+        string memory domain = "test.test";
+        bytes32 domainHash = service.requestDomain(domain);
+
+        string memory d = service.resolveDomain(domain);
+
+        AssertString.equal(d, domain, "should return givne domain name.");
+
+        // AssertString.equal(service.domains()[domainHash].ipv4, "d", "Should have ipv4 value");
+
+        // AssertBytes32.equal(domainHash, keccak256(abi.encodePacked("dd")), "Incorrect domain hash.");
+
+       
+    }
 }

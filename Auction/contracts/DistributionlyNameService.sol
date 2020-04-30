@@ -14,9 +14,13 @@ contract DistributionlyNameService {
         bool isManaged;
     }
 
-    mapping(bytes32 => address) public auctions;
+    mapping(bytes32 => DistributionlyNameAuction) public auctions;
 
     mapping(bytes32 => MgntDomain) public domains;
+
+
+    event DomainStored(bytes32 hash, string domainName);
+
 
     constructor() public {}
 
@@ -24,9 +28,18 @@ contract DistributionlyNameService {
         return keccak256(abi.encodePacked(domain));
     }
 
-    function requestDomain(string memory domain) public payable {
+    function requestDomain(string memory domain) public payable returns (bytes32) {
         bytes32 dHash = hashDomain(domain);
-        domains[dHash] = MgntDomain(domain, msg.sender, "", msg.value, true);
+        //domains[dHash] = MgntDomain(domain, msg.sender, "", msg.value, true);
+        domains[dHash].dName = domain;
+        domains[dHash].dOwner = msg.sender;
+        domains[dHash].ipv4 = "fake ip";
+        domains[dHash].priceInWei = msg.value;
+        domains[dHash].isManaged = true;
+
+        emit DomainStored(dHash, domain);
+
+        return dHash;
     }
 
     function checkDomainAvailability(string memory domain) public view returns (bool) {
@@ -35,21 +48,21 @@ contract DistributionlyNameService {
 
     function resolveDomain(string memory domain) public view returns (string memory) {
         bytes32 dHash = hashDomain(domain);
-        MgntDomain storage d = domains[dHash];
-        if(d.isManaged) {
-            return d.ipv4;
-        }
-        return "unknown";
+        // MgntDomain storage d = domains[dHash];
+        // if(d.isManaged) {
+        //     return d.ipv4;
+        // }
+
+        //return domains[dHash].dName;
+        return "hard coded.";
     }
 
     function startDomainAuction(string memory domain) public returns (address) {
         bytes32 dHash = hashDomain(domain);
         DistributionlyNameAuction auction = new DistributionlyNameAuction(address(this), 10000000, address(uint160(address(this))));
-        auctions[dHash] = address(auction);
-        return auctions[dHash];
+        auctions[dHash] = auction;
+        return address(auctions[dHash]);
     }
-
-
 
 
 }
