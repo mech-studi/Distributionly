@@ -1,6 +1,7 @@
-let instance = await SimpleAuction.deployed()
+let service = await DistributionlyNameService.deployed()
+let simple = await SimpleAuction.deployed()
 let accounts = await web3.eth.getAccounts()
-instance.bid({from:accounts[0], value:1})
+simple.bid({from:accounts[0], value:1})
 
 
 
@@ -8,3 +9,13 @@ instance.bid({from:accounts[0], value:1})
 truffle(develop)> let newInstance = await MetaCoin.new()
 truffle(develop)> newInstance.address
 '0x64307b67314b584b1E3Be606255bd683C835A876'
+
+
+let auctionAddr = await service.startDomainAuction('test.test')
+let hased = await service.requestDomain('test.org', {from:accounts[0], value:1})
+let resolved = await service.resolveDomain('test.org')
+
+
+
+https://github.com/ethereum/remix-ide
+npm install remix-ide -g
