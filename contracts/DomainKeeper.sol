@@ -1,5 +1,4 @@
-pragma solidity 0.5.1;
-
+pragma solidity >=0.5.0 <0.7.0;
 
 contract DomainKeeper {
     uint256 counter = 0;
@@ -10,6 +9,7 @@ contract DomainKeeper {
         uint256 endcontract;
         string domainname;
     }
+
     // the event is going to show which damain is close to be free and preparing for a new auction
     event DomainFree(uint256 endcontract, string domainname);
 
@@ -62,7 +62,7 @@ contract DomainKeeper {
         }
         return false;
     }
->
+
     function dateclosetofinish(uint256 index) external {
         if (domains[index].endcontract == now) {
             emit DomainFree(
@@ -71,10 +71,12 @@ contract DomainKeeper {
             );
         }
     }
+
     //function hasheverything(string memory _owner, string memory  _domainame) public returns(bytes32){
     //    counter += 1;
     //    domains[counter] = iDomain(counter,_owner,now, _domainame);
     //    iDomain memory message = domains[counter] ;
     //    return keccak256(abi.encode(message._id, message.owner,message.endcontract, message.domainname));
     //}
+
 }
