@@ -6,18 +6,22 @@ contract DomainKeeper{
     struct iDomain{
         uint _id;
         string owner;
-        address ipaddress;
-        //string domainname; 
+        uint256 endcontract;
+        string domainname; 
     }
-    
-    
-    
-    // function to add new ipaddress:    
-    function addIp(string memory _owner, address  _ipaddress) public{
+    // the event is going to show which damain is close to be free and preparing for a new auction
+    event DomainFree(
+        uint256 endcontract,
+        string domainname
+        );
+        // use the index in domain (more expensive for gas but not everyone may interesting in the same domain)
         
-        if ( !alreadyregister(_ipaddress)){
+    // function to add new ipaddress:    
+    function addDomain(string memory _owner, string memory  _domainame) public{
+        
+        if ( !alreadyregister(_domainame)){
             counter += 1;
-            domains[counter] = iDomain(counter,_owner, _ipaddress);    
+            domains[counter] = iDomain(counter,_owner,now, _domainame);    
         }
         // what happen if the ip is alreadyregister??
         //create and event to inform when is gonna be free again? 
@@ -28,21 +32,39 @@ contract DomainKeeper{
        
     }
     
-    function getAdress(uint256 id) public view returns(address){
-        return domains[id].ipaddress;
+    function getAdress(uint256 id) public view returns(string memory){
+        return domains[id].domainname;
        
     }
     // function to checked if the ip is already in our register
-    function alreadyregister(address _ipaddress)public view returns(bool){
+    function alreadyregister(string memory newDomain)public view returns(bool){
          
-        for (uint i = 0; i < counter; i++){
-            if(domains[counter].ipaddress == _ipaddress){
+        for (uint i = 0; i <= counter; i++){
+            string memory s1 = domains[i].domainname; 
+            if(keccak256(abi.encodePacked(newDomain))==keccak256(abi.encodePacked(s1))){
                 return true;
             } 
         }
         return false;
     }
     
-    
+    function compareStringsbyBytes(string memory s,uint256 index) public view returns(bool){
+        string memory s1 = domains[index].domainname; 
+        if(keccak256(abi.encodePacked(s))==keccak256(abi.encodePacked(s1))){ 
+           return true; 
+        }
+        return false; 
     }
     
+    function dateclosetofinish(uint256 index) external {
+        if(domains[index].endcontract == now){
+            emit DomainFree(domains[index].endcontract,domains[index].domainname);
+        }
+    }
+    //function hasheverything(string memory _owner, string memory  _domainame) public returns(bytes32){
+    //    counter += 1;
+    //    domains[counter] = iDomain(counter,_owner,now, _domainame);
+    //    iDomain memory message = domains[counter] ;
+    //    return keccak256(abi.encode(message._id, message.owner,message.endcontract, message.domainname));
+    //}
+    }
