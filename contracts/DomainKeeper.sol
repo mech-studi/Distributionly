@@ -1,19 +1,6 @@
 pragma solidity >=0.5.1 <0.7.0;
 
-
 contract DomainKeeper {
-    struct iAuction {
-        uint256 auctionEndTime;
-        // Current state of the auction.
-        address highestBidder;
-        uint256 highestBid;
-        // Allowed withdrawals of previous bids
-        //mapping(address => uint256) pendingReturns;
-        // Set to true at the end, disallows any change.
-        // By default initialized to `false`.
-        bool ended;
-    }
-
     struct iDomain {
         uint256 _id;
         string owner;
@@ -23,25 +10,12 @@ contract DomainKeeper {
 
     uint256 counter = 0;
 
-    mapping(uint256 => iDomain) domains;
-    mapping(bytes32 => iAuction) auctions;
-    mapping(bytes32 => address[]) pendingReturns;
+    mapping(uint256 => iDomain) public domains;
 
     // the event is going to show which damain is close to be free and preparing for a new auction
     event DomainFree(uint256 endcontract, string domainname);
 
-    // Auction Events.auctions[dh]
-    event AuctionStarted(bytes32 dHash, address account, uint256 amount);
-    event AuctionEnded(address winner, uint256 amount);
-
-    event HighestBidIncreased(address bidder, uint256 amount);
-
     // use the index in domain (more expensive for gas but not everyone may interesting in the same domain)
-
-    // Single place to do the domain name hashing.
-    function hashDomain(string memory domain) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(domain));
-    }
 
     // function to add new ipaddress:
     function addDomain(string memory _owner, string memory _domainame) public {
@@ -114,7 +88,38 @@ contract DomainKeeper {
 
     // ========================================================
     // Auction stuff
-    // =====================================dHash===================
+    // ========================================================
+
+    struct iAuction {
+        uint256 auctionEndTime;
+        // Current state of the auction.
+        address highestBidder;
+        uint256 highestBid;
+        // Allowed withdrawals of previous bids
+        //mapping(address => uint256) pendingReturns;
+        // Set to true at the end, disallows any change.
+        // By default initialized to `false`.
+        //bool ended;
+        bool exists;
+    }
+
+    mapping(bytes32 => iAuction) auctions;
+    //mapping(bytes32 => address[]) pendingReturns;
+
+    // Auction Events.auctions[dh]
+    event AuctionStarted(
+        bytes32 dHash,
+        string domain,
+        address account,
+        uint256 amount
+    );
+    event AuctionEnded(address winner, uint256 amount);
+    event HighestBidIncreased(address bidder, uint256 amount);
+
+    // Single place to do the domain name hashing.
+    function hashDomain(string memory domain) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(domain));
+    }
 
     /// Bid on the auction with the value sent
     /// together with this transaction.
@@ -123,32 +128,26 @@ contract DomainKeeper {
     function bid(string memory _domain) public payable {
         bytes32 dh = hashDomain(_domain);
 
-        if (auctions[dh].ended == false) {
-           // address[] memory emptyReturns;
+        // create new auction if no entry is available.
+        if (!auctions[dh].exists) {
+            // address[] memory emptyReturns;
 
-            // auctions[dh] = iAuction({
+            // iAuction memory add = iAuction({
             //     auctionEndTime: now + 10000,
             //     highestBidder: msg.sender,
             //     highestBid: msg.value,
-            //     pendingReturns: emptyReturns,
             //     ended: false
             // });
 
             auctions[dh].auctionEndTime = now + 10000;
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
-            //auctions[dh].pendingReturns = new address[](0);
-            auctions[dh].ended = false;
+            auctions[dh].exists = true;
+            // auctions[dh].ended = false;
 
-            emit AuctionStarted(dh, msg.sender, msg.value);
+            emit AuctionStarted(dh, _domain, msg.sender, msg.value);
             return;
         }
-
-        // No arguments are necessary, all
-        // information is already part of
-        // the transaction. The keyword payable
-        // is required for the function to
-        // be able to receive Ether.
 
         // Revert the call if the bidding
         // period is over.
@@ -171,11 +170,21 @@ contract DomainKeeper {
             // It is always safer to let the recipients
             // withdraw their money themselves.
             //auctions[dh].pendingReturns[auctions[dh]
-             //   .highestBidder] += auctions[dh].highestBid;
+             //  .highestBidder] += auctions[dh].highestBid;
         }
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
 
         emit HighestBidIncreased(msg.sender, msg.value);
+    }
+
+    function getAuctionState(string memory _domain)
+        public
+        view
+        returns (uint256)
+    {
+        bytes32 dh = hashDomain(_domain);
+        // iAuction memory a = auctions[dh];
+        return (auctions[dh].highestBid);
     }
 }
