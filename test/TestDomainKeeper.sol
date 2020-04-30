@@ -60,4 +60,30 @@ contract TestDomainKeeper {
             "Curent highest bid should be 2."
         );
     }
+
+    function testPendingReturns() public {
+        DomainKeeper keeper = new DomainKeeper();
+
+        string memory domain = "test.test";
+
+        AssertBool.isFalse(
+            keeper.getAuctionStateExists(domain),
+            "Auction should no exists at the beginning"
+        );
+
+        keeper.bid.value(1)(domain);
+        keeper.bid.value(2)(domain);
+        keeper.bid.value(3)(domain);
+
+        AssertBool.isTrue(
+            keeper.getAuctionStateExists(domain),
+            "Auction must exists after multiple bids."
+        );
+
+        AssertUint.equal(
+            keeper.getAuctionStateReturns(domain),
+            3,
+            "Pending returns for user should be 3."
+        );
+    }
 }
