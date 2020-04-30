@@ -89,6 +89,7 @@ contract DomainKeeper {
 
     // ========================================================
     // Auction stuff
+    // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
     struct iAuction {
@@ -98,6 +99,7 @@ contract DomainKeeper {
         uint256 highestBid;
         // Allowed withdrawals of previous bids
         //mapping(address => uint256) pendingReturns;
+        mapping(address => uint) pendingReturns;
         // Set to true at the end, disallows any change.
         // By default initialized to `false`.
         //bool ended;
@@ -170,8 +172,7 @@ contract DomainKeeper {
             // because it could execute an untrusted contract.
             // It is always safer to let the recipients
             // withdraw their money themselves.
-            //auctions[dh].pendingReturns[auctions[dh]
-            //  .highestBidder] += auctions[dh].highestBid;
+            auctions[dh].pendingReturns[auctions[dh].highestBidder] += auctions[dh].highestBid;
         }
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
@@ -201,5 +202,13 @@ contract DomainKeeper {
         returns (bool)
     {
         return (auctions[hashDomain(_domain)].exists);
+    }
+
+    function getAuctionStateReturns(string memory _domain)
+        public
+        view
+        returns (uint)
+    {
+        return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
 }
