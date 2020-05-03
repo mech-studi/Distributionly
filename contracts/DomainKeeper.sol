@@ -23,9 +23,9 @@ contract DomainKeeper {
         if (!alreadyregister(_domainame)) {
             counter += 1;
             domains[counter] = iDomain({
-                _id: counter,
-                owner: _owner,
-                domainname: _domainame,
+                _id: counter, 
+                owner: _owner, 
+                domainname: _domainame, 
                 endcontract: now
             });
         }
@@ -42,28 +42,17 @@ contract DomainKeeper {
     }
 
     // function to checked if the ip is already in our register
-    function alreadyregister(string memory newDomain)
-        public
-        view
-        returns (bool)
-    {
+    function alreadyregister(string memory newDomain) public view returns (bool) {
         for (uint256 i = 0; i <= counter; i++) {
             string memory s1 = domains[i].domainname;
-            if (
-                keccak256(abi.encodePacked(newDomain)) ==
-                keccak256(abi.encodePacked(s1))
-            ) {
+            if (keccak256(abi.encodePacked(newDomain)) == keccak256(abi.encodePacked(s1))) {
                 return true;
             }
         }
         return false;
     }
 
-    function compareStringsbyBytes(string memory s, uint256 index)
-        public
-        view
-        returns (bool)
-    {
+    function compareStringsbyBytes(string memory s, uint256 index) public view returns (bool) {
         string memory s1 = domains[index].domainname;
         if (keccak256(abi.encodePacked(s)) == keccak256(abi.encodePacked(s1))) {
             return true;
@@ -73,10 +62,7 @@ contract DomainKeeper {
 
     function dateclosetofinish(uint256 index) external {
         if (domains[index].endcontract == now) {
-            emit DomainFree(
-                domains[index].endcontract,
-                domains[index].domainname
-            );
+            emit DomainFree(domains[index].endcontract, domains[index].domainname);
         }
     }
 
@@ -88,7 +74,7 @@ contract DomainKeeper {
     //}auctions[dh]
 
     // ========================================================
-    // Auction stuff
+    // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
@@ -99,7 +85,7 @@ contract DomainKeeper {
         uint256 highestBid;
         // Allowed withdrawals of previous bids
         //mapping(address => uint256) pendingReturns;
-        mapping(address => uint) pendingReturns;
+        mapping(address => uint256) pendingReturns;
         // Set to true at the end, disallows any change.
         // By default initialized to `false`.
         //bool ended;
@@ -110,12 +96,7 @@ contract DomainKeeper {
     //mapping(bytes32 => address[]) pendingReturns;
 
     // Auction Events.auctions[dh]
-    event AuctionStarted(
-        bytes32 dHash,
-        string domain,
-        address account,
-        uint256 amount
-    );
+    event AuctionStarted(bytes32 dHash, string domain, address account, uint256 amount);
     event AuctionEnded(address winner, uint256 amount);
     event HighestBidIncreased(address bidder, uint256 amount);
 
@@ -161,10 +142,7 @@ contract DomainKeeper {
         // will revert all changes in this
         // function execution including
         // it having received the money).
-        require(
-            msg.value > auctions[dh].highestBid,
-            "There already is a higher bid."
-        );
+        require(msg.value > auctions[dh].highestBid, "There already is a higher bid.");
 
         if (auctions[dh].highestBid != 0) {
             // Sending back the money by simply using
@@ -180,35 +158,19 @@ contract DomainKeeper {
         emit HighestBidIncreased(msg.sender, msg.value);
     }
 
-    function getAuctionStateBidder(string memory _domain)
-        public
-        view
-        returns (address)
-    {
+    function getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
     }
 
-    function getAuctionStateBid(string memory _domain)
-        public
-        view
-        returns (uint256)
-    {
+    function getAuctionStateBid(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].highestBid);
     }
 
-    function getAuctionStateExists(string memory _domain)
-        public
-        view
-        returns (bool)
-    {
+    function getAuctionStateExists(string memory _domain) public view returns (bool) {
         return (auctions[hashDomain(_domain)].exists);
     }
 
-    function getAuctionStateReturns(string memory _domain)
-        public
-        view
-        returns (uint)
-    {
+    function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
 }
