@@ -1,77 +1,72 @@
-pragma solidity >=0.5.1 <0.7.0;
-
-
-contract DomainKeeper {
-    struct iDomain {
-        uint256 _id;
-        string owner;
-        string domainname;
+pragma solidity >=0.5.0 <0.7.0;
+contract DomainKeeper{
+    uint256 counter = 0 ; 
+    mapping(uint256 => iDomain) domains; 
+    
+    
+    struct iDomain{
+        uint _id;
+        address owner;
         uint256 endcontract;
+        string  domainname;
+        
     }
-
-    uint256 counter = 0;
-
-    mapping(uint256 => iDomain) public domains;
 
     // the event is going to show which damain is close to be free and preparing for a new auction
-    event DomainFree(uint256 endcontract, string domainname);
-
-    // use the index in domain (more expensive for gas but not everyone may interesting in the same domain)
-
-    // function to add new ipaddress:
-    function addDomain(string memory _owner, string memory _domainame) public {
-        if (!alreadyregister(_domainame)) {
+    event DomainFree(
+        uint256 endcontract,// date in wich the contract is close to end
+        string domainname //the name of the domain
+        );
+    
+        
+    // function to add new domainname:    
+    function configurateDomain(address  _owner, string memory  _domainame ) public payable returns(string memory){
+        
+        if ( !alreadyregister(_domainame)){
             counter += 1;
-            domains[counter] = iDomain({
-                _id: counter, 
-                owner: _owner, 
-                domainname: _domainame, 
-                endcontract: now
-            });
+            domains[counter] = iDomain(counter,_owner,now, _domainame);
+            return("The domain was register");
+        }else{
+            return("Error:! The domain was alreadyregister");
         }
-        // what happen if thauctions[dh]e ip is alreadyregister??
-        //create and event to inform when is gonna be free again?
-    }
-
-    function getOwner(uint256 id) public view returns (string memory) {
+    } 
+    
+    function getOwner(uint256 id) public view returns(address){
         return domains[id].owner;
+       
     }
-
-    function getAdress(uint256 id) public view returns (string memory) {
+    
+    function getDomainName(uint256 id) public view returns(string memory){
         return domains[id].domainname;
+       
     }
-
     // function to checked if the ip is already in our register
-    function alreadyregister(string memory newDomain) public view returns (bool) {
-        for (uint256 i = 0; i <= counter; i++) {
-            string memory s1 = domains[i].domainname;
-            if (keccak256(abi.encodePacked(newDomain)) == keccak256(abi.encodePacked(s1))) {
+    function alreadyregister(string memory newDomain)public view returns(bool){
+         
+        for (uint i = 0; i <= counter; i++){
+            string memory s1 = domains[i].domainname; 
+            if(keccak256(abi.encodePacked(newDomain))==keccak256(abi.encodePacked(s1))){
                 return true;
-            }
+            } 
         }
         return false;
     }
-
-    function compareStringsbyBytes(string memory s, uint256 index) public view returns (bool) {
-        string memory s1 = domains[index].domainname;
-        if (keccak256(abi.encodePacked(s)) == keccak256(abi.encodePacked(s1))) {
-            return true;
+    
+    function compareStringsbyBytes(string memory s,uint256 index) public view returns(bool){
+        string memory s1 = domains[index].domainname; 
+        if(keccak256(abi.encodePacked(s))==keccak256(abi.encodePacked(s1))){ 
+           return true; 
         }
-        return false;
+        return false; 
     }
-
+    
     function dateclosetofinish(uint256 index) external {
-        if (domains[index].endcontract == now) {
-            emit DomainFree(domains[index].endcontract, domains[index].domainname);
+        if(domains[index].endcontract == now -604800){ // has to be the time.stamp 
+            emit DomainFree(domains[index].endcontract,domains[index].domainname);
         }
     }
-
-    //function hasheverything(string memory _owner, string memory  _domainame) public returns(bytes32){
-    //    counter += 1;
-    //    domains[counter] = iDomain(counter,_owner,now, _domainame);
-    //    iDomain memory message = domains[counter] ;
-    //    return keccak256(abi.encode(message._id, message.owner,message.endcontract, message.domainname));
-    //}auctions[dh]
+   
+    }
 
     // ========================================================
     // AUCTION STUFF
