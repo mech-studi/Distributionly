@@ -80,35 +80,27 @@ contract DomainKeeper {
 
     struct iAuction {
         uint256 auctionEndTime;
-        // Current state of the auction.
         address highestBidder;
         uint256 highestBid;
-        // Allowed withdrawals of previous bids
-        //mapping(address => uint256) pendingReturns;
-        mapping(address => uint256) pendingReturns;
-        // Set to true at the end, disallows any change.
-        // By default initialized to `false`.
-        //bool ended;
+        mapping(address => uint256) pendingReturns;   // Allowed withdrawals of previous bids
+        bool ended; // Set to true at the end, disallows any change.
         bool exists;
     }
 
     mapping(bytes32 => iAuction) auctions;
-    //mapping(bytes32 => address[]) pendingReturns;
 
-    // Auction Events.auctions[dh]
+    // Auction Events
     event AuctionStarted(bytes32 dHash, string domain, address account, uint256 amount);
     event AuctionEnded(address winner, uint256 amount);
     event HighestBidIncreased(address bidder, uint256 amount);
 
-    // Single place to do the domain name hashing.
+    /// Single place to do the domain name hashing.
     function hashDomain(string memory domain) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(domain));
     }
 
-    /// Bid on the auction with the value sent
-    /// together with this transaction.
-    /// The value will only be refunded if the
-    /// auction is not won.
+    /// Bid on the auction with the value sent together with this transaction.
+    /// The value will only be refunded if the auction is not won.
     function bid(string memory _domain) public payable {
         bytes32 dh = hashDomain(_domain);
 
@@ -127,29 +119,23 @@ contract DomainKeeper {
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
             auctions[dh].exists = true;
-            // auctions[dh].ended = false;
+            auctions[dh].ended = false;
 
             emit AuctionStarted(dh, _domain, msg.sender, msg.value);
             return;
         }
 
-        // Revert the call if the bidding
-        // period is over.
+
+        require(condition, message);(auctions[dh].ended)
+
+        // Revert the call if the bidding period is over.
         require(now <= auctions[dh].auctionEndTime, "Auction already ended.");
 
-        // If the bid is not higher, send the
-        // money back (the failing require
-        // will revert all changes in this
-        // function execution including
-        // it having received the money).
+        // If the bid is not higher, send the money back.
         require(msg.value > auctions[dh].highestBid, "There already is a higher bid.");
 
         if (auctions[dh].highestBid != 0) {
-            // Sending back the money by simply using
-            // highestBidder.send(highestBid) is a security risk
-            // because it could execute an untrusted contract.
-            // It is always safer to let the recipients
-            // withdraw their money themselves.
+            // Let the recipients withdraw their money themselves with withdraw().
             auctions[dh].pendingReturns[auctions[dh].highestBidder] += auctions[dh].highestBid;
         }
         auctions[dh].highestBidder = msg.sender;
@@ -157,6 +143,39 @@ contract DomainKeeper {
 
         emit HighestBidIncreased(msg.sender, msg.value);
     }
+
+    function withdraw(string memory _domain) public {
+        bytes32 dh = hashDomain(_domain);
+
+        // require(auctions[dh].exists, "No runnning auction for this domain.");
+
+        // might not be so important?
+        // No withdrawel during a running auction
+        // require(auctions[dh].ended, "Auction still running.");
+
+        uint amount = auctions[dh].pendingReturns[msg.sender];
+        if (amount > 0) {
+            // Set this to zero to prevent double spending.
+            auctions[dh].pendingReturns[msg.sender] = 0;
+            msg.sender.transfer(amount);
+        }
+    }
+
+    /// End the auction and send the highest bid to the beneficiary.
+    function auctionEnd(bytes32 dHash) public {
+        // 1. Conditions
+        require(auctions[dHash].exists, "No such auction esists.");
+        require(now >= auctionEndTime, "Auction not yet ended.");
+        require(!auctions[dHash].ended, "auctionEnd has already been called.");
+
+        // 2. Effects
+        auctions[dHash].ended = true;
+        emit AuctionEnded(auctions[dHash].highestBidder, auctions[dHash].highestBid);
+
+        // 3. Interaction
+        //address(this).transfer(auctions[dHash].highestBid);
+    }
+
 
     function getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
