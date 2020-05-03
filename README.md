@@ -2,6 +2,25 @@
 
 `This project is an assignment for the BCOLN lecture at the University of Zurich.`
 
+
+## Contract API
+
+- bid(string memory _domain) public payable  
+    - start auction if not existing
+    - bid on existing auction
+- withdraw(string memory _domain) public 
+    - get money back if auction not won
+- claim (string memory _domain)
+    - winner can register domain name in registry
+- configureDomain(string memory _domain, string memory ipv4, string memory ipv6) public payable
+    - set dns zone file configuration
+    - currently ipv4 and ipv6 addresses
+    - only callable by the domain owner
+- getDomainInfo(string memory _domain) public view (string memory ipv4, string memory, ipv4, address owner)
+    - returns the dns entry information for a given domain name
+
+
+
 ## Brief Description & Ideation
 
 The goal of this project is to rebuild the basic functionality of a Domain Name System (DNS) based on a blockchain and smart contracts.
