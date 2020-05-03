@@ -41,6 +41,7 @@ contract DomainKeeper{
         return domains[id].domainname;
        
     }
+
     // function to checked if the ip is already in our register
     function alreadyregister(string memory newDomain)public view returns(bool){
          
@@ -101,15 +102,6 @@ contract DomainKeeper{
 
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
-            // address[] memory emptyReturns;
-
-            // iAuction memory add = iAuction({
-            //     auctionEndTime: now + 10000,
-            //     highestBidder: msg.sender,
-            //     highestBid: msg.value,
-            //     ended: false
-            // });
-
             auctions[dh].auctionEndTime = now + 10000;
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
@@ -121,7 +113,7 @@ contract DomainKeeper{
         }
 
 
-       // require(condition, message);(auctions[dh].ended)
+        //require(condition, message);(auctions[dh].ended)
 
         // Revert the call if the bidding period is over.
         require(now <= auctions[dh].auctionEndTime, "Auction already ended.");
