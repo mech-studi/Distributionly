@@ -2,7 +2,6 @@
 
 `This project is an assignment for the BCOLN lecture at the University of Zurich.`
 
-
 ## Contract API
 
 - bid(string memory _domain) public payable  
@@ -18,7 +17,6 @@
     - only callable by the domain owner
 - getDomainInfo(string memory _domain) public view (string memory ipv4, string memory, ipv4, address owner)
     - returns the dns entry information for a given domain name
-
 
 
 ## Brief Description & Ideation
