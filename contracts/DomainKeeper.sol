@@ -1,4 +1,5 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.5.1 <0.7.0;
+
 contract DomainKeeper{
     uint256 counter = 0 ; 
     mapping(uint256 => iDomain) domains; 
@@ -66,8 +67,7 @@ contract DomainKeeper{
         }
     }
    
-    }
-
+    
     // ========================================================
     // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
@@ -121,7 +121,7 @@ contract DomainKeeper{
         }
 
 
-        require(condition, message);(auctions[dh].ended)
+       // require(condition, message);(auctions[dh].ended)
 
         // Revert the call if the bidding period is over.
         require(now <= auctions[dh].auctionEndTime, "Auction already ended.");
@@ -160,7 +160,7 @@ contract DomainKeeper{
     function auctionEnd(bytes32 dHash) public {
         // 1. Conditions
         require(auctions[dHash].exists, "No such auction esists.");
-        require(now >= auctionEndTime, "Auction not yet ended.");
+        require(now >= auctions[dHash].auctionEndTime, "Auction not yet ended.");
         require(!auctions[dHash].ended, "auctionEnd has already been called.");
 
         // 2. Effects
@@ -187,4 +187,5 @@ contract DomainKeeper{
     function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
+
 }
