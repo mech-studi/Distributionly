@@ -9,13 +9,15 @@
     - bid on existing auction
 - withdraw(string memory _domain) public 
     - get money back if auction not won
-- claim (string memory _domain)
-    - winner can register domain name in registry
+- claim (string memory _domain) public payable
+    - winner can register domain name in registry.
+    - This function only can be call from the owner of the domain. 
+    - It will check if the one who is calling this function is the one register in the action as the highestBidder.
 - configureDomain(string memory _domain, string memory ipv4, string memory ipv6) public payable
     - set dns zone file configuration
     - currently ipv4 and ipv6 addresses
     - only callable by the domain owner
-- getDomainInfo(string memory _domain) public view (string memory ipv4, string memory, ipv4, address owner)
+- getDomainInfo(string memory _domain) public view (string memory ipv4, string memory ipv6, address owner, uint256 endcontract)
     - returns the dns entry information for a given domain name
 
 
