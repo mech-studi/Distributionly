@@ -1,75 +1,60 @@
-pragma solidity >=0.5.1 <0.7.0;
-
+pragma solidity >=0.5.0 <0.7.0;
 contract DomainKeeper{
-    uint256 counter = 0 ; 
-    mapping(uint256 => iDomain) domains; 
     
-    
+    //struct to keep all the data of the registered domains:
     struct iDomain{
-        uint _id;
         address owner;
         uint256 endcontract;
         string  domainname;
-        
+        string Ipv4;
+        string Ipv6; 
     }
-
-    // the event is going to show which damain is close to be free and preparing for a new auction
-    event DomainFree(
-        uint256 endcontract,// date in wich the contract is close to end
-        string domainname //the name of the domain
-        );
     
+    mapping(bytes32 => iDomain) domains;
+    
+    //Function the user will call to modify the IPS
+    //Only the owner of the domain is Allowed to change this information.
+    function ConfigureDomain(string memory  _domainame, string memory _Ipv4, string memory _Ipv6 ) public payable{
+         //require(condition, message);(auctions[dh].owner== msg....
+        bytes32 dh = hashDomain(_domainame);
+        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+        require(domains[dh].owner == msg.sender, "Error, you are not the owner of this domain");
+        domains[dh].Ipv4= _Ipv4;
+        domains[dh].Ipv6 = _Ipv6;
         
-    // function to add new domainname:    
-    function configurateDomain(address  _owner, string memory  _domainame ) public payable returns(string memory){
-        
-        if ( !alreadyregister(_domainame)){
-            counter += 1;
-            domains[counter] = iDomain(counter,_owner,now, _domainame);
-            return("The domain was register");
-        }else{
-            return("Error:! The domain was alreadyregister");
-        }
     } 
-    
-    function getOwner(uint256 id) public view returns(address){
-        return domains[id].owner;
+    //Function that retunrs the information about a especifict domain
+    function getDomainInfo(string memory _domainame) public view returns(string memory ipv4, string memory ipv6, address owner,uint256 _endcontract){
+        bytes32 dh = hashDomain(_domainame);
+        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+        return(domains[dh].Ipv4, domains[dh].Ipv6,domains[dh].owner, domains[dh].endcontract); 
+    }
+    // the claim methos is gonna save the new domains with the respective owner.
+    function claim(string memory _domainame)public payable{
+        bytes32 dh = hashDomain(_domainame);
+        require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain");
+        domains[dh].domainname = _domainame;
+        domains[dh].owner = msg.sender;
        
     }
     
-    function getDomainName(uint256 id) public view returns(string memory){
-        return domains[id].domainname;
+    //this function is here only for checking the code works: 
+    function addDomain(string memory _domainame, address _owner)public{
+        bytes32 dh = hashDomain(_domainame);
+        domains[dh].domainname = _domainame;
+        domains[dh].owner = _owner;
+        
+        
+    }
+    //Retunrs the address of the owner of a domain: 
+    function getOwner(string memory _domainame) public view returns (address){
+        bytes32 dh = hashDomain(_domainame);
+        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+        return domains[dh].owner;
        
     }
-
-    // function to checked if the ip is already in our register
-    function alreadyregister(string memory newDomain)public view returns(bool){
-         
-        for (uint i = 0; i <= counter; i++){
-            string memory s1 = domains[i].domainname; 
-            if(keccak256(abi.encodePacked(newDomain))==keccak256(abi.encodePacked(s1))){
-                return true;
-            } 
-        }
-        return false;
-    }
     
-    function compareStringsbyBytes(string memory s,uint256 index) public view returns(bool){
-        string memory s1 = domains[index].domainname; 
-        if(keccak256(abi.encodePacked(s))==keccak256(abi.encodePacked(s1))){ 
-           return true; 
-        }
-        return false; 
-    }
-    
-    function dateclosetofinish(uint256 index) external {
-        if(domains[index].endcontract == now -604800){ // has to be the time.stamp 
-            emit DomainFree(domains[index].endcontract,domains[index].domainname);
-        }
-    }
-   
-    
-    // ========================================================
+        // ========================================================
     // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
@@ -181,3 +166,5 @@ contract DomainKeeper{
     }
 
 }
+  
+    
