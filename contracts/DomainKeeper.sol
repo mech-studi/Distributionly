@@ -2,6 +2,7 @@ pragma solidity >=0.5.0 <0.7.0;
 
 
 contract DomainKeeper {
+
     //struct to keep all the data of the registered domains:
     struct iDomain {
         address owner;
@@ -9,9 +10,31 @@ contract DomainKeeper {
         string domainname;
         string Ipv4;
         string Ipv6;
+        bool exists;
     }
 
     mapping(bytes32 => iDomain) domains;
+
+
+    /// Single place to do the domain name hashing.
+    function hashDomain(string memory domain) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(domain));
+    }
+
+    /// Figures out the current state of a domain
+    /// Possible states are: registered, inauction or free
+    function calcDomainState(bytes32 dHash) private view returns (string memory) {
+
+        if(domains[dHash].exists && domains[dHash].owner != address(0)) {
+            return "registered";
+        }
+
+        if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
+            return "inauction";
+        }
+
+        return "free";
+    }
 
     /// Function the user will call to modify the IPS
     /// Only the owner of the domain is Allowed to change this information.
@@ -41,6 +64,7 @@ contract DomainKeeper {
         require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain");
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
+        domains[dh].exists = true;
     }
 
     /// This function is here only for checking the code works:
@@ -78,10 +102,7 @@ contract DomainKeeper {
     event AuctionEnded(address winner, uint256 amount);
     event HighestBidIncreased(address bidder, uint256 amount);
 
-    /// Single place to do the domain name hashing.
-    function hashDomain(string memory domain) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(domain));
-    }
+
 
     /// Bid on the auction with the value sent together with this transaction.
     /// The value will only be refunded if the auction is not won.
