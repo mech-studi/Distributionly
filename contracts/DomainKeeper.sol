@@ -24,7 +24,6 @@ contract DomainKeeper {
     /// Figures out the current state of a domain
     /// Possible states are: registered, inauction or free
     function calcDomainState(bytes32 dHash) private view returns (string memory) {
-
         if(domains[dHash].exists && domains[dHash].owner != address(0)) {
             return "registered";
         }
@@ -98,10 +97,9 @@ contract DomainKeeper {
     mapping(bytes32 => iAuction) auctions;
 
     // Auction Events
-    event AuctionStarted(bytes32 dHash, string domain, address account, uint256 amount);
-    event AuctionEnded(address winner, uint256 amount);
-    event HighestBidIncreased(address bidder, uint256 amount);
-
+    event AuctionStarted(string domain, bytes32 dHash, address account, uint256 amount);
+    event AuctionEnded(string domain, address winner, uint256 amount);
+    event HighestBidIncreased(string domain, address bidder, uint256 amount);
 
 
     /// Bid on the auction with the value sent together with this transaction.
@@ -117,7 +115,7 @@ contract DomainKeeper {
             auctions[dh].exists = true;
             auctions[dh].ended = false;
 
-            emit AuctionStarted(dh, _domain, msg.sender, msg.value);
+            emit AuctionStarted(_domain, dh, msg.sender, msg.value);
             return;
         }
 
@@ -136,7 +134,7 @@ contract DomainKeeper {
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
 
-        emit HighestBidIncreased(msg.sender, msg.value);
+        emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
     function withdraw(string memory _domain) public {
@@ -157,15 +155,17 @@ contract DomainKeeper {
     }
 
     /// End the auction and send the highest bid to the beneficiary.
-    function auctionEnd(bytes32 dHash) public {
+    function auctionEnd(string memory _domain) public {
+        bytes32 dh = hashDomain(_domain);
+
         // 1. Conditions
-        require(auctions[dHash].exists, "No such auction esists.");
-        require(now >= auctions[dHash].auctionEndTime, "Auction not yet ended.");
-        require(!auctions[dHash].ended, "auctionEnd has already been called.");
+        require(auctions[dh].exists, "No such auction esists.");
+        require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
+        require(!auctions[dh].ended, "auctionEnd has already been called.");
 
         // 2. Effects
-        auctions[dHash].ended = true;
-        emit AuctionEnded(auctions[dHash].highestBidder, auctions[dHash].highestBid);
+        auctions[dh].ended = true;
+        emit AuctionEnded(_domain, auctions[dh].highestBidder, auctions[dh].highestBid);
 
         // 3. Interaction
         //address(this).transfer(auctions[dHash].highestBid);
