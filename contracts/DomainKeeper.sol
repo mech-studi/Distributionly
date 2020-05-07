@@ -6,7 +6,6 @@ contract DomainKeeper {
     //struct to keep all the data of the registered domains:
     struct iDomain {
         address owner;
-        uint256 endcontract;
         string domainname;
         string Ipv4;
         string Ipv6;
@@ -28,11 +27,14 @@ contract DomainKeeper {
             return "registered";
         }
 
-        if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
-            return "inauction";
+        else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
+             
+            return "inauction ";
         }
-
-        return "free";
+        else{
+            return "free";    
+        }
+        
     }
 
     /// Function the user will call to modify the IPS
@@ -47,16 +49,24 @@ contract DomainKeeper {
     }
 
     /// Function that retunrs the information about a especifict domain
-    function getDomainInfo(string memory _domainame)
-        public
-        view
-        returns (string memory ipv4, string memory ipv6, address owner, uint256 _endcontract)
+   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner,uint256 highestBid)
     {
         bytes32 dh = hashDomain(_domainame);
-        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
-        return (domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner, domains[dh].endcontract);
+        if(domains[dh].exists && domains[dh].owner != address(0)){
+            state = "registered";
+            return (state, domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner,0);
+        }
+        else if(!domains[dh].exists && auctions[dh].exists && !auctions[dh].ended) {
+            state = "inauction";
+            return(state, "NON", "NON", domains[dh].owner, getAuctionStateBid( _domainame) );
+            
+        }
+        else{
+            state= "free";
+            return(state, "NON", "NON", domains[dh].owner,0);    
+        }
+        
     }
-
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
@@ -71,6 +81,8 @@ contract DomainKeeper {
         bytes32 dh = hashDomain(_domainame);
         domains[dh].domainname = _domainame;
         domains[dh].owner = _owner;
+        domains[dh].exists = true;
+        
     }
 
     /// Retunrs the address of the owner of a domain:
