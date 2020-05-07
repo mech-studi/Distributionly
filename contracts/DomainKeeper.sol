@@ -1,60 +1,63 @@
 pragma solidity >=0.5.0 <0.7.0;
-contract DomainKeeper{
-    
+
+
+contract DomainKeeper {
     //struct to keep all the data of the registered domains:
-    struct iDomain{
+    struct iDomain {
         address owner;
         uint256 endcontract;
-        string  domainname;
+        string domainname;
         string Ipv4;
-        string Ipv6; 
+        string Ipv6;
     }
-    
+
     mapping(bytes32 => iDomain) domains;
-    
-    //Function the user will call to modify the IPS
-    //Only the owner of the domain is Allowed to change this information.
-    function ConfigureDomain(string memory  _domainame, string memory _Ipv4, string memory _Ipv6 ) public payable{
-         //require(condition, message);(auctions[dh].owner== msg....
+
+    /// Function the user will call to modify the IPS
+    /// Only the owner of the domain is Allowed to change this information.
+    function ConfigureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
+        //require(condition, message);(auctions[dh].owner== msg....
         bytes32 dh = hashDomain(_domainame);
         require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
         require(domains[dh].owner == msg.sender, "Error, you are not the owner of this domain");
-        domains[dh].Ipv4= _Ipv4;
+        domains[dh].Ipv4 = _Ipv4;
         domains[dh].Ipv6 = _Ipv6;
-        
-    } 
-    //Function that retunrs the information about a especifict domain
-    function getDomainInfo(string memory _domainame) public view returns(string memory ipv4, string memory ipv6, address owner,uint256 _endcontract){
+    }
+
+    /// Function that retunrs the information about a especifict domain
+    function getDomainInfo(string memory _domainame)
+        public
+        view
+        returns (string memory ipv4, string memory ipv6, address owner, uint256 _endcontract)
+    {
         bytes32 dh = hashDomain(_domainame);
         require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
-        return(domains[dh].Ipv4, domains[dh].Ipv6,domains[dh].owner, domains[dh].endcontract); 
+        return (domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner, domains[dh].endcontract);
     }
-    // the claim methos is gonna save the new domains with the respective owner.
-    function claim(string memory _domainame)public payable{
+
+    /// The claim methos is gonna save the new domains with the respective owner.
+    function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
         require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain");
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
-       
     }
-    
-    //this function is here only for checking the code works: 
-    function addDomain(string memory _domainame, address _owner)public{
+
+    /// This function is here only for checking the code works:
+    function addDomain(string memory _domainame, address _owner) public {
         bytes32 dh = hashDomain(_domainame);
         domains[dh].domainname = _domainame;
         domains[dh].owner = _owner;
-        
-        
     }
-    //Retunrs the address of the owner of a domain: 
-    function getOwner(string memory _domainame) public view returns (address){
+
+    /// Retunrs the address of the owner of a domain:
+    function getOwner(string memory _domainame) public view returns (address) {
         bytes32 dh = hashDomain(_domainame);
         require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
         return domains[dh].owner;
-       
     }
-    
-        // ========================================================
+
+    // ========================================================
     // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
@@ -63,7 +66,7 @@ contract DomainKeeper{
         uint256 auctionEndTime;
         address highestBidder;
         uint256 highestBid;
-        mapping(address => uint256) pendingReturns;   // Allowed withdrawals of previous bids
+        mapping(address => uint256) pendingReturns; // Allowed withdrawals of previous bids
         bool ended; // Set to true at the end, disallows any change.
         bool exists;
     }
@@ -87,7 +90,7 @@ contract DomainKeeper{
 
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
-            auctions[dh].auctionEndTime = now + 10000;
+            auctions[dh].auctionEndTime = now + 1 minutes;
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
             auctions[dh].exists = true;
@@ -96,7 +99,6 @@ contract DomainKeeper{
             emit AuctionStarted(dh, _domain, msg.sender, msg.value);
             return;
         }
-
 
         //require(condition, message);(auctions[dh].ended)
 
@@ -125,7 +127,7 @@ contract DomainKeeper{
         // No withdrawel during a running auction
         // require(auctions[dh].ended, "Auction still running.");
 
-        uint amount = auctions[dh].pendingReturns[msg.sender];
+        uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
             // Set this to zero to prevent double spending.
             auctions[dh].pendingReturns[msg.sender] = 0;
@@ -148,7 +150,6 @@ contract DomainKeeper{
         //address(this).transfer(auctions[dHash].highestBid);
     }
 
-
     function getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
     }
@@ -164,7 +165,4 @@ contract DomainKeeper{
     function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
-
 }
-  
-    
