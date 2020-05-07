@@ -156,14 +156,16 @@ contract DomainKeeper {
     /// - Amount of the highest bid
     /// - Auction end time
     /// - Flag indicating if ended or not
-    function getAuctionState(string memory _domain) public view returns (string memory, address, uint256, uint256, bool) {
+    /// - Flag indicating if exists or not
+    function getAuctionState(string memory _domain) public view returns (string memory, address, uint256, uint256, bool, bool) {
         bytes32 dh = hashDomain(_domain);
         return (
             _domain, 
             auctions[dh].highestBidder,
             auctions[dh].highestBid, 
             auctions[dh].auctionEndTime, 
-            auctions[dh].ended
+            auctions[dh].ended,
+            auctions[dh].exists
         );
     }
 
