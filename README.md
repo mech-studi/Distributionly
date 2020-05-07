@@ -18,6 +18,7 @@
     - currently ipv4 and ipv6 addresses
     - only callable by the domain owner
 - getDomainInfo(string memory _domain) public view returns(string memory state, string memory ipv4, string memory ipv6, address owner)
+    - returns the information of the domain *state, ips, owner of the domain* , being "state" between these possible values {*registered, inauction, free*}
 - getAuctionStateBid(string memory _domain) public view returns (uint256)
     - returns the highest current bid
 
