@@ -150,6 +150,23 @@ contract DomainKeeper {
         //address(this).transfer(auctions[dHash].highestBid);
     }
 
+    /// Lets you check the state of an auction and returns the following attributes:
+    /// - Domain
+    /// - Address of highest bidder
+    /// - Amount of the highest bid
+    /// - Auction end time
+    /// - Flag indicating if ended or not
+    function getAuctionState(string memory _domain) public view returns (string memory, address, uint256, uint256, bool) {
+        bytes32 dh = hashDomain(_domain);
+        return (
+            _domain, 
+            auctions[dh].highestBidder,
+            auctions[dh].highestBid, 
+            auctions[dh].auctionEndTime, 
+            auctions[dh].ended
+        );
+    }
+
     function getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
     }
