@@ -49,23 +49,10 @@ contract DomainKeeper {
     }
 
     /// Function that retunrs the information about a especifict domain
-   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner,uint256 highestBid)
-    {
+   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner)    {
         bytes32 dh = hashDomain(_domainame);
-        if(domains[dh].exists && domains[dh].owner != address(0)){
-            state = "registered";
-            return (state, domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner,0);
-        }
-        else if(!domains[dh].exists && auctions[dh].exists && !auctions[dh].ended) {
-            state = "inauction";
-            return(state, "NON", "NON", domains[dh].owner, getAuctionStateBid( _domainame) );
-            
-        }
-        else{
-            state= "free";
-            return(state, "NON", "NON", domains[dh].owner,0);    
-        }
-        
+        return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
+       
     }
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
