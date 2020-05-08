@@ -88,8 +88,8 @@ contract DomainKeeper {
     // ========================================================
 
     uint constant AUCTION_MIN_PRICE_IN_WEI = 2;
- //   uint constant AUCTION_DURATION = 3 minutes;
-//    uint constant AUCTION_EXTENSION_TIME = 1 minutes;
+    uint constant AUCTION_DURATION = 40 seconds;
+    uint constant AUCTION_EXTENSION_TIME = 30 seconds;
 
     struct iAuction {
         uint256 auctionEndTime;
@@ -105,6 +105,7 @@ contract DomainKeeper {
     // Auction Events
     event AuctionStarted(string domain, bytes32 dHash, address account, uint256 amount);
     event AuctionEnded(string domain, address winner, uint256 amount);
+    event AuctionExtended(string domain, uint extensionTime, uint newEndTime);
     event HighestBidIncreased(string domain, address bidder, uint256 amount);
 
     /// Bid on the auction with the value sent together with this transaction.
@@ -117,7 +118,7 @@ contract DomainKeeper {
 
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
-            auctions[dh].auctionEndTime = now + 1 minutes;
+            auctions[dh].auctionEndTime = now + AUCTION_DURATION;
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
             auctions[dh].exists = true;
@@ -134,6 +135,11 @@ contract DomainKeeper {
         if(now >= auctions[dh].auctionEndTime) {
             endAuction(_domain);
             return;
+        }
+
+        // Extend auction.
+        if(now + AUCTION_EXTENSION_TIME >= auctions[dh].auctionEndTime){
+            extendAuction(_domain, AUCTION_EXTENSION_TIME);
         }
 
         // If the bid is not higher, send the money back.
@@ -166,7 +172,7 @@ contract DomainKeeper {
         }
     }
 
-    /// End tendAuction and send the highest biinternalhe beneficiary.
+    /// End the auction.
     function endAuction(string memory _domain) internal {
         bytes32 dh = hashDomain(_domain);
 
@@ -181,6 +187,20 @@ contract DomainKeeper {
 
         // 3. Interaction
         //address(this).transfer(auctions[dHash].highestBid);
+    }
+
+
+    /// Extend the auctio time.
+    function extendAuction(string memory _domain, uint _extensionTime) internal {
+        bytes32 dh = hashDomain(_domain);
+
+        // 1. Conditions
+        require(auctions[dh].exists, "No such auction esists.");
+        require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
+
+        // 2. Effects
+        auctions[dh].auctionEndTime += _extensionTime;
+        emit AuctionExtended(_domain, _extensionTime, auctions[dh].auctionEndTime);
     }
 
     /// Lets you check the state of an auction and returns the following attributes:
