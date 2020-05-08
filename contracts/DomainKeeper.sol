@@ -55,7 +55,7 @@ contract DomainKeeper {
 
         require(auctions[dh].exists, "Auction does not exist.");
         require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain.");
-
+        require(now >= auctions[dh].auctionEndTime, "Auction is still running.");
 
         // End auction if deadline already passed
         if(!auctions[dh].ended && now >= auctions[dh].auctionEndTime) {
