@@ -196,7 +196,7 @@ contract DomainKeeper {
 
         // 1. Conditions
         require(auctions[dh].exists, "No such auction esists.");
-        require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
+        require(now <= auctions[dh].auctionEndTime, "Auction not yet ended.");
 
         // 2. Effects
         auctions[dh].auctionEndTime += _extensionTime;
