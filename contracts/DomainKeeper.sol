@@ -87,6 +87,7 @@ contract DomainKeeper {
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
+    uint constant AUCTION_MIN_PRICE_IN_WEI = 2;
  //   uint constant AUCTION_DURATION = 3 minutes;
 //    uint constant AUCTION_EXTENSION_TIME = 1 minutes;
 
@@ -110,6 +111,9 @@ contract DomainKeeper {
     /// The value will only be refunded if the auction is not won.
     function bid(string memory _domain) public payable {
         bytes32 dh = hashDomain(_domain);
+
+        // Check min bid value.
+        require(AUCTION_MIN_PRICE_IN_WEI <= msg.value, "Minimum bid for an auction is 2 wei.");
 
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
