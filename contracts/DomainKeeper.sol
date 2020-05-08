@@ -68,11 +68,12 @@ contract DomainKeeper {
     }
 
     /// This function is here only for checking the code works:
-    function addDomain(string memory _domainame, address _owner) public {
-        bytes32 dh = hashDomain(_domainame);
-        domains[dh].domainname = _domainame;
-        domains[dh].owner = _ownerdomains[dh].exists = true;
-    }
+    // function addDomain(string memory _domainame, address _owner) public {
+    //     bytes32 dh = hashDomain(_domainame);
+    //     domains[dh].domainname = _domainame;
+    //     domains[dh].owner = _owner;
+    //     domains[dh].exists = true;
+    // }
 
     /// Retunrs the address of the owner of a domain:
     function getOwner(string memory _domainame) public view returns (address) {
