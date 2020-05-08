@@ -193,8 +193,24 @@ contract DomainKeeper {
             auctions[dh].ended,
             auctions[dh].exists
         );
+    f
 
     function getAuctionStateBidder(string memory _domain) public view returns (address) {
+        return (auctions[hashDomain(_domain)].highestBidder);
+    }
+
+    function getAuctionStateBid(string memory _domain) public view returns (uint256) {
+        return (auctions[hashDomain(_domain)].highestBid);
+    }
+
+    function getAuctionStateExists(string memory _domain) public view returns (bool) {
+        return (auctions[hashDomain(_domain)].exists);
+    }
+
+    function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
+        return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
+    }
+    unction getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
     }
 
