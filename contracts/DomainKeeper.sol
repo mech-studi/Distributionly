@@ -25,16 +25,11 @@ contract DomainKeeper {
     function calcDomainState(bytes32 dHash) private view returns (string memory) {
         if(domains[dHash].exists && domains[dHash].owner != address(0)) {
             return "registered";
+        } else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
+            return "inauction";
+        } else{
+            return "free";
         }
-
-        else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
-             
-            return "inauction ";
-        }
-        else{
-            return "free";    
-        }
-        
     }
 
     /// Function the user will call to modify the IPS
