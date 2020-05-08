@@ -79,6 +79,9 @@ contract DomainKeeper {
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
+ //   uint constant AUCTION_DURATION = 3 minutes;
+//    uint constant AUCTION_EXTENSION_TIME = 1 minutes;
+
     struct iAuction {
         uint256 auctionEndTime;
         address highestBidder;
@@ -113,10 +116,14 @@ contract DomainKeeper {
             return;
         }
 
-        //require(condition, message);(auctions[dh].ended)
+        // Revert if auction already ended
+        require(!auctions[dh].ended, "Auction already ended.");
 
-        // Revert the call if the bidding period is over.
-        require(now <= auctions[dh].auctionEndTime, "Auction already ended.");
+        // End auction if deadline already passed and return.
+        if(now >= auctions[dh].auctionEndTime) {
+            auctionEnd(_domain);
+            return;
+        }
 
         // If the bid is not higher, send the money back.
         require(msg.value > auctions[dh].highestBid, "There already is a higher bid.");
