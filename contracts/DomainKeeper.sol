@@ -44,11 +44,12 @@ contract DomainKeeper {
     }
 
     /// Function that retunrs the information about a especifict domain
-   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner)    {
+   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner) {
         bytes32 dh = hashDomain(_domainame);
         return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
-       
     }
+
+    
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
@@ -56,7 +57,7 @@ contract DomainKeeper {
         require(auctions[dh].exists, "Auction does not exist.");
         require(auctions[dh].ended, "Auction is still running.");
         require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain.");
-        
+
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
         domains[dh].exists = true;
@@ -66,8 +67,7 @@ contract DomainKeeper {
     function addDomain(string memory _domainame, address _owner) public {
         bytes32 dh = hashDomain(_domainame);
         domains[dh].domainname = _domainame;
-        domains[dh].owner = _owner;
-        domains[dh].exists = true;
+        domains[dh].owner = _ownerdomains[dh].exists = true;
         
     }
 
@@ -125,7 +125,7 @@ contract DomainKeeper {
 
         // End auction if deadline already passed and return.
         if(now >= auctions[dh].auctionEndTime) {
-            auctionEnd(_domain);
+            endAuction(_domain);
             return;
         }
 
@@ -159,8 +159,8 @@ contract DomainKeeper {
         }
     }
 
-    /// End the auction and send the highest bid to the beneficiary.
-    function auctionEnd(string memory _domain) public {
+    /// End tendAuction and send the highest biinternalhe beneficiary.
+    function endAuction(string memory _domain) internal {
         bytes32 dh = hashDomain(_domain);
 
         // 1. Conditions
@@ -193,7 +193,6 @@ contract DomainKeeper {
             auctions[dh].ended,
             auctions[dh].exists
         );
-    }
 
     function getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
@@ -209,5 +208,6 @@ contract DomainKeeper {
 
     function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
+    }   return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
 }
