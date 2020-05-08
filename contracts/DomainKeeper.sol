@@ -52,7 +52,11 @@ contract DomainKeeper {
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
-        require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain");
+
+        require(auctions[dh].exists, "Auction does not exist.");
+        require(auctions[dh].ended, "Auction is still running.");
+        require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain.");
+        
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
         domains[dh].exists = true;
