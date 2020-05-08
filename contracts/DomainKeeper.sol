@@ -59,7 +59,7 @@ contract DomainKeeper {
 
         // End auction if deadline already passed
         if(!auctions[dh].ended && now >= auctions[dh].auctionEndTime) {
-            endAuction(_domain);
+            endAuction(_domainame);
         }
 
         domains[dh].domainname = _domainame;
