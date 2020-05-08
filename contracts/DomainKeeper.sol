@@ -49,14 +49,18 @@ contract DomainKeeper {
         return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
     }
 
-    
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
 
         require(auctions[dh].exists, "Auction does not exist.");
-        require(auctions[dh].ended, "Auction is still running.");
         require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain.");
+
+
+        // End auction if deadline already passed
+        if(!auctions[dh].ended && now >= auctions[dh].auctionEndTime) {
+            endAuction(_domain);
+        }
 
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
@@ -68,7 +72,6 @@ contract DomainKeeper {
         bytes32 dh = hashDomain(_domainame);
         domains[dh].domainname = _domainame;
         domains[dh].owner = _ownerdomains[dh].exists = true;
-        
     }
 
     /// Retunrs the address of the owner of a domain:
@@ -101,7 +104,6 @@ contract DomainKeeper {
     event AuctionStarted(string domain, bytes32 dHash, address account, uint256 amount);
     event AuctionEnded(string domain, address winner, uint256 amount);
     event HighestBidIncreased(string domain, address bidder, uint256 amount);
-
 
     /// Bid on the auction with the value sent together with this transaction.
     /// The value will only be refunded if the auction is not won.
@@ -210,7 +212,7 @@ contract DomainKeeper {
     function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
     }
-    unction getAuctionStateBidder(string memory _domain) public view returns (address) {
+unction getAuctionStateBidder(string memory _domain) public view returns (address) {
         return (auctions[hashDomain(_domain)].highestBidder);
     }
 
