@@ -28,13 +28,13 @@ contract DomainKeeper {
         }
 
         else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
-             
-            return "inauction ";
+
+            return "inauction";
         }
         else{
-            return "free";    
+            return "free";
         }
-        
+
     }
 
     /// Function the user will call to modify the IPS
@@ -52,7 +52,7 @@ contract DomainKeeper {
    function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner)    {
         bytes32 dh = hashDomain(_domainame);
         return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
-       
+
     }
     /// The claim methos is gonna save the new domains with the respective owner.
     function claim(string memory _domainame) public payable {
@@ -69,7 +69,7 @@ contract DomainKeeper {
         domains[dh].domainname = _domainame;
         domains[dh].owner = _owner;
         domains[dh].exists = true;
-        
+
     }
 
     /// Retunrs the address of the owner of a domain:
@@ -132,6 +132,7 @@ contract DomainKeeper {
         }
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
+        auctions[dh].auctionEndTime = now + 1 minutes;
 
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
@@ -179,11 +180,12 @@ contract DomainKeeper {
     /// - Flag indicating if exists or not
     function getAuctionState(string memory _domain) public view returns (string memory, address, uint256, uint256, bool, bool) {
         bytes32 dh = hashDomain(_domain);
+        
         return (
-            _domain, 
+            _domain,
             auctions[dh].highestBidder,
-            auctions[dh].highestBid, 
-            auctions[dh].auctionEndTime, 
+            auctions[dh].highestBid,
+            auctions[dh].auctionEndTime,
             auctions[dh].ended,
             auctions[dh].exists
         );

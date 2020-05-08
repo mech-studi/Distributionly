@@ -1,7 +1,5 @@
-const Migrations = artifacts.require("Migrations");
-const DomainKeeper = artifacts.require("DomainKeeper");
+var Migrations = artifacts.require("./Migrations.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(Migrations);
-  deployer.deploy(DomainKeeper);
 };
