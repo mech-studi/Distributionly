@@ -76,11 +76,11 @@ contract DomainKeeper {
     // }
 
     /// Retunrs the address of the owner of a domain:
-    function getOwner(string memory _domainame) public view returns (address) {
-        bytes32 dh = hashDomain(_domainame);
-        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
-        return domains[dh].owner;
-    }
+    // function getOwner(string memory _domainame) public view returns (address) {
+    //     bytes32 dh = hashDomain(_domainame);
+    //     require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+    //     return domains[dh].owner;
+    // }
 
     // ========================================================
     // AUCTION STUFF
@@ -227,20 +227,20 @@ contract DomainKeeper {
         );
     }
 
-    function getAuctionStateBidder(string memory _domain) public view returns (address) {
-        return (auctions[hashDomain(_domain)].highestBidder);
-    }
+    // function getAuctionStateBidder(string memory _domain) public view returns (address) {
+    //     return (auctions[hashDomain(_domain)].highestBidder);
+    // }
 
-    function getAuctionStateBid(string memory _domain) public view returns (uint256) {
-        return (auctions[hashDomain(_domain)].highestBid);
-    }
+    // function getAuctionStateBid(string memory _domain) public view returns (uint256) {
+    //     return (auctions[hashDomain(_domain)].highestBid);
+    // }
 
-    function getAuctionStateExists(string memory _domain) public view returns (bool) {
-        return (auctions[hashDomain(_domain)].exists);
-    }
+    // function getAuctionStateExists(string memory _domain) public view returns (bool) {
+    //     return (auctions[hashDomain(_domain)].exists);
+    // }
 
-    function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
-        return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
-    }
+    // function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
+    //     return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
+    // }
 
 }
