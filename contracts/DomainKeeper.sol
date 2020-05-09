@@ -35,10 +35,12 @@ contract DomainKeeper {
     /// Function the user will call to modify the IPS
     /// Only the owner of the domain is Allowed to change this information.
     function configureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
-        //require(condition, message);(auctions[dh].owner== msg....
         bytes32 dh = hashDomain(_domainame);
-        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+
+        require(domains[dh].exists, "Domain does not exist.");
+        require(keccak256(abi.encodePacked(calcDomainState(dh))) == keccak256(abi.encodePacked("registered")), "Domain is not yet registered.");
         require(domains[dh].owner == msg.sender, "Error, you are not the owner of this domain");
+
         domains[dh].Ipv4 = _Ipv4;
         domains[dh].Ipv6 = _Ipv6;
     }
@@ -114,7 +116,10 @@ contract DomainKeeper {
         bytes32 dh = hashDomain(_domain);
 
         // Check min bid value.
-        require(AUCTION_MIN_PRICE_IN_WEI <= msg.value, "Minimum bid for an auction is 2 wei.");
+        require(AUCTION_MIN_PRICE_IN_WEI <= msg.value, "Minimum bid for an auction is 5 Ethers.");
+
+        // Check domain state, cannot be registered domain.
+        require(keccak256(abi.encodePacked(calcDomainState(dh))) != keccak256(abi.encodePacked("registered")), "Domain is not free for auction.");
 
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
