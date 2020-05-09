@@ -34,7 +34,7 @@ contract DomainKeeper {
 
     /// Function the user will call to modify the IPS
     /// Only the owner of the domain is Allowed to change this information.
-    function ConfigureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
+    function configureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
         //require(condition, message);(auctions[dh].owner== msg....
         bytes32 dh = hashDomain(_domainame);
         require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
