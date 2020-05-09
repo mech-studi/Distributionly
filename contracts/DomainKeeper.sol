@@ -25,7 +25,7 @@ contract DomainKeeper {
     function calcDomainState(bytes32 dHash) private view returns (string memory) {
         if(domains[dHash].exists && domains[dHash].owner != address(0)) {
             return "registered";
-        } else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
+        } else if(!domains[dHash].exists && auctions[dHash].exists && now <= auctions[dHash].auctionEndTime) {
             return "inauction";
         } else{
             return "free";
@@ -49,7 +49,7 @@ contract DomainKeeper {
         return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
     }
 
-    /// The claim methos is gonna save the new domains with the respective owner.
+    /// The claim method is ending the auction and registers the domain name with the owner.
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
 
@@ -58,7 +58,7 @@ contract DomainKeeper {
         require(now >= auctions[dh].auctionEndTime, "Auction is still running.");
 
         // End auction if deadline already passed
-        if(!auctions[dh].ended && now >= auctions[dh].auctionEndTime) {
+        if(!auctions[dh].claimed && now >= auctions[dh].auctionEndTime) {
             endAuction(_domainame);
         }
 
@@ -87,16 +87,16 @@ contract DomainKeeper {
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
-    uint constant AUCTION_MIN_PRICE_IN_WEI = 2;
-    uint constant AUCTION_DURATION = 40 seconds;
-    uint constant AUCTION_EXTENSION_TIME = 30 seconds;
+    uint constant AUCTION_MIN_PRICE_IN_WEI = 5000000000000000000; // is 5 Ether
+    uint constant AUCTION_DURATION = 1 minutes;
+    uint constant AUCTION_EXTENSION_TIME = 20 seconds;
 
     struct iAuction {
         uint256 auctionEndTime;
         address highestBidder;
         uint256 highestBid;
         mapping(address => uint256) pendingReturns; // Allowed withdrawals of previous bids
-        bool ended; // Set to true at the end, disallows any change.
+        bool claimed;
         bool exists;
     }
 
@@ -122,14 +122,14 @@ contract DomainKeeper {
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
             auctions[dh].exists = true;
-            auctions[dh].ended = false;
+            auctions[dh].claimed = false;
 
             emit AuctionStarted(_domain, dh, msg.sender, msg.value);
             return;
         }
 
         // Revert if auction already ended
-        require(!auctions[dh].ended, "Auction already ended.");
+        require(!auctions[dh].claimed, "Auction already claimed and ended.");
 
         // End auction if deadline already passed and return.
         if(now >= auctions[dh].auctionEndTime) {
@@ -155,10 +155,11 @@ contract DomainKeeper {
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
- function withdraw(string memory _domain) public returns (bool)  {
+    /// Withraw bids that did not win. 
+    function withdraw(string memory _domain) public returns (bool)  {
         bytes32 dh = hashDomain(_domain);
 
-        // require(auctions[dh].exists, "No runnning auction for this domain.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
 
         uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
@@ -175,17 +176,18 @@ contract DomainKeeper {
         }
         return true;
     }
+
     /// End the auction.
     function endAuction(string memory _domain) internal {
         bytes32 dh = hashDomain(_domain);
 
         // 1. Conditions
-        require(auctions[dh].exists, "No such auction esists.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
         require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
-        require(!auctions[dh].ended, "auctionEnd has already been called.");
+        require(!auctions[dh].claimed, "AuctionEnd has already been called.");
 
         // 2. Effects
-        auctions[dh].ended = true;
+        auctions[dh].claimed = true;
         emit AuctionEnded(_domain, auctions[dh].highestBidder, auctions[dh].highestBid);
 
         // 3. Interaction
@@ -193,12 +195,12 @@ contract DomainKeeper {
     }
 
 
-    /// Extend the auctio time.
+    /// Extend the auction time.
     function extendAuction(string memory _domain, uint _extensionTime) internal {
         bytes32 dh = hashDomain(_domain);
 
         // 1. Conditions
-        require(auctions[dh].exists, "No such auction esists.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
         require(now <= auctions[dh].auctionEndTime, "Auction not yet ended.");
 
         // 2. Effects
@@ -220,7 +222,7 @@ contract DomainKeeper {
             auctions[dh].highestBidder,
             auctions[dh].highestBid, 
             auctions[dh].auctionEndTime, 
-            auctions[dh].ended,
+            auctions[dh].claimed,
             auctions[dh].exists
         );
     }
