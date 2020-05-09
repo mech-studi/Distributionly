@@ -27,6 +27,8 @@ contract DomainKeeper {
             return "registered";
         } else if(!domains[dHash].exists && auctions[dHash].exists && now <= auctions[dHash].auctionEndTime) {
             return "inauction";
+        } else if(!domains[dHash].exists && auctions[dHash].exists && now > auctions[dHash].auctionEndTime) {
+            return "toberegistered";
         } else{
             return "free";
         }
@@ -55,8 +57,8 @@ contract DomainKeeper {
     function claim(string memory _domainame) public payable {
         bytes32 dh = hashDomain(_domainame);
 
-        require(auctions[dh].exists, "Auction does not exist.");
-        require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
+        require(auctions[dh].highestBidder == msg.sender, "You are not the winner of the auction.");
         require(now >= auctions[dh].auctionEndTime, "Auction is still running.");
 
         // End auction if deadline already passed
@@ -133,14 +135,11 @@ contract DomainKeeper {
             return;
         }
 
-        // Revert if auction already ended
-        require(!auctions[dh].claimed, "Auction already claimed and ended.");
+        // Revert if auction already claimed
+        // require(!auctions[dh].claimed, "Auction already claimed.");
 
-        // End auction if deadline already passed and return.
-        if(now >= auctions[dh].auctionEndTime) {
-            endAuction(_domain);
-            return;
-        }
+       // Revert if auction already ended
+        require(now <= auctions[dh].auctionEndTime, "Action already ended.");
 
         // Extend auction.
         if(now + AUCTION_EXTENSION_TIME >= auctions[dh].auctionEndTime){
