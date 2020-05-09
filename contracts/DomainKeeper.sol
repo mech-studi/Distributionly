@@ -221,15 +221,22 @@ contract DomainKeeper {
     /// - Auction end time
     /// - Flag indicating if domain was claimed or not
     /// - Flag indicating if exists or not
-    function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists) {
+    function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists, bool accountHasReturns) {
         bytes32 dh = hashDomain(_domain);
+
+        bool accountHasReturns = false;
+        if(auctions[dh].pendingReturns[msg.sender] > 0 ) {
+            accountHasReturns = true;
+        }
+
         return (
             _domain, 
             auctions[dh].highestBidder,
             auctions[dh].highestBid, 
             auctions[dh].auctionEndTime, 
             auctions[dh].claimed,
-            auctions[dh].exists
+            auctions[dh].exists,
+            accountHasReturns
         );
     }
 
