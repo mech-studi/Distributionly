@@ -1,0 +1,8 @@
+tasks:
+  - init: npm install -g truffle
+    command: echo "Replace me with something that should run on every start, or just
+      remove me entirely."
+
+vscode:
+  extensions:
+    - JuanBlanco.solidity@0.0.72:RfpSwZX0ktV3Zi1rZEAGqQ==
