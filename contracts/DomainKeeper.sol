@@ -54,21 +54,37 @@ contract DomainKeeper {
     }
 
     /// The claim method is ending the auction and registers the domain name with the owner.
-    function claim(string memory _domainame) public payable {
+    function claim(string memory _domainame) public returns (bool) {
         bytes32 dh = hashDomain(_domainame);
 
         require(auctions[dh].exists, "No existing auction for wanted domain.");
         require(auctions[dh].highestBidder == msg.sender, "You are not the winner of the auction.");
         require(now >= auctions[dh].auctionEndTime, "Auction is still running.");
+        require(!auctions[dh].claimed, "Auction is already claimed.");
 
-        // End auction if deadline already passed
-        if(!auctions[dh].claimed && now >= auctions[dh].auctionEndTime) {
-            endAuction(_domainame);
-        }
+        // End Auction
+        auctions[dh].claimed = true;
+        emit AuctionEnded(_domainame, auctions[dh].highestBidder, auctions[dh].highestBid);
 
+        // Register Domain
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
         domains[dh].exists = true;
+
+        // Return pendingReturns        
+        uint256 amount = auctions[dh].pendingReturns[msg.sender];
+        if (amount > 0) {
+            auctions[dh].pendingReturns[msg.sender] = 0;
+
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                auctions[dh].pendingReturns[msg.sender] = amount;
+                return false;
+            }
+            emit Withdraw(_domainame, msg.sender, amount);
+        }
+
+        return true;
     }
 
     /// This function is here only for checking the code works:
@@ -111,6 +127,8 @@ contract DomainKeeper {
     event AuctionEnded(string domain, address winner, uint256 amount);
     event AuctionExtended(string domain, uint extensionTime, uint newEndTime);
     event HighestBidIncreased(string domain, address bidder, uint256 amount);
+    event Withdraw(string domain, address bidder, uint256 amount);
+
 
     /// Bid on the auction with the value sent together with this transaction.
     /// The value will only be refunded if the auction is not won.
@@ -177,27 +195,11 @@ contract DomainKeeper {
                 auctions[dh].pendingReturns[msg.sender] = amount;
                 return false;
             }
+
+            emit Withdraw(_domain, msg.sender, amount);
         }
         return true;
     }
-
-    /// End the auction.
-    function endAuction(string memory _domain) internal {
-        bytes32 dh = hashDomain(_domain);
-
-        // 1. Conditions
-        require(auctions[dh].exists, "No existing auction for wanted domain.");
-        require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
-        require(!auctions[dh].claimed, "AuctionEnd has already been called.");
-
-        // 2. Effects
-        auctions[dh].claimed = true;
-        emit AuctionEnded(_domain, auctions[dh].highestBidder, auctions[dh].highestBid);
-
-        // 3. Interaction
-        //address(this).transfer(auctions[dHash].highestBid);
-    }
-
 
     /// Extend the auction time.
     function extendAuction(string memory _domain, uint _extensionTime) internal {
@@ -217,7 +219,7 @@ contract DomainKeeper {
     /// - Address of highest bidder
     /// - Amount of the highest bid
     /// - Auction end time
-    /// - Flag indicating if ended or not
+    /// - Flag indicating if domain was claimed or not
     /// - Flag indicating if exists or not
     function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists) {
         bytes32 dh = hashDomain(_domain);
