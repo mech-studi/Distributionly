@@ -228,7 +228,7 @@ contract DomainKeeper {
             auctions[dh].highestBid, 
             auctions[dh].auctionEndTime, 
             auctions[dh].claimed,
-            auctions[dh].exists
+            auctions[0dh].exists
         );
     }
 
