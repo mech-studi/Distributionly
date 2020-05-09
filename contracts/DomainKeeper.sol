@@ -155,23 +155,26 @@ contract DomainKeeper {
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
-    function withdraw(string memory _domain) public {
+ function withdraw(string memory _domain) public returns (bool)  {
         bytes32 dh = hashDomain(_domain);
 
         // require(auctions[dh].exists, "No runnning auction for this domain.");
 
-        // might not be so important?
-        // No withdrawel during a running auction
-        // require(auctions[dh].ended, "Auction still running.");
-
         uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
-            // Set this to zero to prevent double spending.
+            // It is important to set this to zero because the recipient
+            // can call this function again as part of the receiving call
+            // before `send` returns.
             auctions[dh].pendingReturns[msg.sender] = 0;
-            msg.sender.transfer(amount);
-        }
-    }
 
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                auctions[dh].pendingReturns[msg.sender] = amount;
+                return false;
+            }
+        }
+        return true;
+    }
     /// End the auction.
     function endAuction(string memory _domain) internal {
         bytes32 dh = hashDomain(_domain);
