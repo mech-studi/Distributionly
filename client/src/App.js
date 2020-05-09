@@ -1,8 +1,6 @@
 import React, {
     Component
 } from "react";
-// import SimpleStorageContract from "./contracts/SimpleStorage.json";
-// import MyContract from "./contracts/MyContract.json";
 import DomainKeeperContract from "./contracts/DomainKeeper.json";
 import getWeb3 from "./getWeb3";
 
@@ -89,6 +87,7 @@ class App extends Component {
 
         contract.events.AuctionStarted({}, (err, res) => {
             if (err) return;
+            console.log("auction started");
             if (!containsObject(res, prevNotifications)) {
                 prevNotifications.push(res);
                 new Noty({
@@ -103,36 +102,38 @@ class App extends Component {
             if (err) return;
             if (!containsObject(res, prevNotifications)) {
                 prevNotifications.push(res);
-                new Noty({
-                    text: `The auction for domain ${res.returnValues.domain} has ended, with the highest bid of ${res.returnValues.amount} wei!`,
-                }).show();
-                this.state.contract.methods.getAuctionState(this.state.searchedDomain).call()
-                .then((res)=>{
-                    this.handleAuctionState(res, this);
-                })
-                .catch((err)=>{
-                    console.log(err);
-                });
+                    new Noty({
+                        text: `The auction for domain ${res.returnValues.domain} has ended, with the highest bid of ${res.returnValues.amount} wei!`,
+                        timeout: false,
+                    })
+                    .on('onClick', () => {
+                        this.updateDomainInfoPanel(res.returnValues.domain, this);
+                    })
+                    .show();
+                    if(res.returnValues.domain == this.state.searchedDomain){
+                        this.updateDomainInfoPanel(this.state.searchedDomain, this);
+                    }
             }
         });
         contract.events.HighestBidIncreased({}, (err, res) => {
             if (err) return;
+            console.log("highest bid increased");
             if (!containsObject(res, prevNotifications)) {
                 prevNotifications.push(res);
-                console.log(res.returnValues);
-                new Noty({
-                    text: `The new highest bid on domain ${res.returnValues.domain} is ${res.returnValues.amount} wei.`,
-                }).show();
-                console.log(res.returnValues.domain, this.state.searchedDomain);
-                if(res.returnValues.domain == this.state.searchedDomain){
-                    this.state.contract.methods.getAuctionState(this.state.inputValue).call()
-                    .then((res)=>{
-                        this.handleAuctionState(res, this);
-                    })
-                    .catch((err)=>{
-                        console.log(err);
-                    });
-                }
+                    console.log(res.returnValues);
+                    new Noty({
+                        text: `The new highest bid on domain ${res.returnValues.domain} is ${res.returnValues.amount} wei.`,
+                    }).show();
+                    console.log(res.returnValues.domain, this.state.searchedDomain);
+                    if(res.returnValues.domain == this.state.searchedDomain){
+                        this.state.contract.methods.getAuctionState(this.state.searchedDomain).call()
+                        .then((res)=>{
+                            this.handleAuctionState(res, this);
+                        })
+                        .catch((err)=>{
+                            console.log(err);
+                        });
+                    }
             }
         });
     };
@@ -160,27 +161,28 @@ class App extends Component {
     }
 
     checkAuctionEnd = function(domainName, ths){
-        ths.state.contract.methods.getAuctionState(domainName).call()
-        .then((res)=>{
-            if(domainName == ths.state.searchedDomain){ //need to update info panel
-                ths.handleAuctionState(res, ths);
-            }
-        })
-        .catch((err)=>{
-            console.log(err);
-        });
+        ths.updateDomainInfoPanel(domainName, ths);
     }
 
     handleAuctionState = function(res, ths){
         var n = Date.now();
         var end = res[3] + "000";
         console.log(n, end);
-        //RES GOING TO SAY IF AUCTION ENDED
         if(n > end){
+            var statusText;
+            var buyButtonText;
+            if(res["1"] == ths.state.accounts[0]){
+                statusText = "The auction has ended, and you won!";
+                buyButtonText = "Claim";
+            }else{
+                statusText = "The auction has ended, but you did not win!";
+                buyButtonText = "Withdraw";
+            }
             ths.setState({
-                domainStatusText: "The auction has ended, but the domain is unclaimed.",
+                domainStatusText: statusText,
+                buyButtonText,
                 highestBid: res["2"],
-        });
+            });
             console.log("auction ended");
         }else{
             ths.setState({auctionEnd: parseInt(end), highestBid: res["2"],});
@@ -229,7 +231,7 @@ class App extends Component {
         })
         .then((res)=>{ //get highest bid if in an auction
             if(domainStatus == "inauction"){
-                return ths.state.contract.methods.getAuctionStateBid(ths.state.inputValue).call()
+                return ths.state.contract.methods.getAuctionStateBid(ths.state.searchedDomain).call()
                 .then((res)=>{
                     highestBid = res;
                     console.log(res);
@@ -254,7 +256,7 @@ class App extends Component {
             searchedDomain: domainName
         });
         if(domainStatus == "inauction"){
-            await ths.state.contract.methods.getAuctionState(ths.state.inputValue).call()
+            await ths.state.contract.methods.getAuctionState(ths.state.searchedDomain).call()
             .then((res)=>{
                 this.handleAuctionState(res, ths);
             })
@@ -271,62 +273,101 @@ class App extends Component {
     }
 
     handleBuy = async function() {
-        Swal.fire({
+        var buttonText = this.state.buyButtonText;
+        if(buttonText == "Bid" || buttonText == "Bid higher"){
+            Swal.fire({
                 title: `How much would you like to bid on ${this.state.inputValue}?`,
                 html: '<div><input id="swal-input1" class="swal2-input" type="number"></div>' +
-                    '<select id="swal-input2" class="swal2-select">' +
-                    '<option value="0">Wei</option>' +
-                    '<option value="3">Kwei</option>' +
-                    '<option value="6">Mwei</option>' +
-                    '<option value="9">Gwei</option>' +
-                    '<option value="12">MicroEther</option>' +
-                    '<option value="15">MilliEther</option>' +
-                    '<option value="18">Ether</option>' +
-                    '</select>',
+                '<select id="swal-input2" class="swal2-select">' +
+                '<option value="0">Wei</option>' +
+                '<option value="3">Kwei</option>' +
+                '<option value="6">Mwei</option>' +
+                '<option value="9">Gwei</option>' +
+                '<option value="12">MicroEther</option>' +
+                '<option value="15">MilliEther</option>' +
+                '<option value="18">Ether</option>' +
+                '</select>',
                 preConfirm: () => {
                     return [document.getElementById('swal-input1').value,
-                        document.getElementById('swal-input2').value
-                    ]
+                    document.getElementById('swal-input2').value
+                ]
+            }
+        })
+            .then((res) => {
+            if (res.value) {
+                var amountString = res.value[0];
+                var multiplier = parseInt(res.value[1]);
+                var decimalMarker = "";
+
+                if (amountString.includes(",")) {
+                    decimalMarker = ",";
+                } else if (amountString.includes(".")) {
+                    decimalMarker = ".";
+                }
+                var i = multiplier;
+                if (decimalMarker != "") {
+                    var decimalIndex = amountString.indexOf(decimalMarker);
+                    var decimals = amountString.length - decimalIndex - 1;
+                    if (decimals <= i) {
+                        decimalMarker = "";
+                        amountString = amountString.slice(0, decimalIndex) + amountString.slice(decimalIndex + 1);
+                        i -= decimals;
+                    } else {
+                        amountString = amountString.slice(0, decimalIndex) + amountString.slice(decimalIndex + 1);
+                        amountString = amountString.slice(0, decimalIndex + i) + "." + amountString.slice(decimalIndex + i);
+                        i = 0;
+                    }
+                }
+                while (i > 0) {
+                    amountString += "0";
+                    i--;
+                }
+
+                console.log(amountString);
+
+                this.state.contract.methods.bid(this.state.searchedDomain).send({
+                    from: this.state.accounts[0],
+                    value: amountString
+                });
+            }
+        });
+        }else if(buttonText == "Claim"){
+            this.state.contract.methods.claim(this.state.searchedDomain).send({
+                from: this.state.accounts[0]
+            })
+            .then(()=>{
+                this.updateDomainInfoPanel(this.state.searchedDomain, this);
+            })
+            .catch((err)=>{console.log(err)});
+        }else if(buttonText == "Withdraw"){
+            this.state.contract.methods.withdraw(this.state.searchedDomain).call()
+            .then((res)=>{
+                console.log(res);
+            })
+            .catch((err)=>{
+                console.log(err);
+            });
+        }else if(buttonText == "Configure"){
+            Swal.fire({
+                title: `Configure your values`,
+                html: '<input placeholder="IPv4" id="swal-input1" class="swal2-input" type="text" minlength="7" maxlength="15" size="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">' +
+                '<input placeholder="IPv6" id="swal-input2" class="swal2-input" <input type="text" pattern="^(([0-9a-fA-F]{1}|[1-9a-fA-F]{1}[0-9a-fA-F]{1,3}):){7}([0-9a-fA-F]{1}|[1-9a-fA-F]{1}[0-9a-fA-F]{1,3})$">',
+                preConfirm: () => {
+                    return [document.getElementById('swal-input1').value,
+                    document.getElementById('swal-input2').value]
                 }
             })
-            .then((res) => {
-                if (res.value) {
-                    var amountString = res.value[0];
-                    var multiplier = parseInt(res.value[1]);
-                    var decimalMarker = "";
-
-                    if (amountString.includes(",")) {
-                        decimalMarker = ",";
-                    } else if (amountString.includes(".")) {
-                        decimalMarker = ".";
-                    }
-                    var i = multiplier;
-                    if (decimalMarker != "") {
-                        var decimalIndex = amountString.indexOf(decimalMarker);
-                        var decimals = amountString.length - decimalIndex - 1;
-                        if (decimals <= i) {
-                            decimalMarker = "";
-                            amountString = amountString.slice(0, decimalIndex) + amountString.slice(decimalIndex + 1);
-                            i -= decimals;
-                        } else {
-                            amountString = amountString.slice(0, decimalIndex) + amountString.slice(decimalIndex + 1);
-                            amountString = amountString.slice(0, decimalIndex + i) + "." + amountString.slice(decimalIndex + i);
-                            i = 0;
-                        }
-                    }
-                    while (i > 0) {
-                        amountString += "0";
-                        i--;
-                    }
-
-                    console.log(amountString);
-
-                    this.state.contract.methods.bid(this.state.inputValue).send({
-                        from: this.state.accounts[0],
-                        value: amountString
+            .then((res)=>{
+                if(res.value){
+                    this.state.contract.methods.ConfigureDomain(this.state.searchedDomain, res.value[0], res.value[1]).send({
+                        from: this.state.accounts[0]
+                    })
+                    .then(()=>{
+                        this.updateDomainInfoPanel(this.state.searchedDomain, this);
                     });
                 }
             });
+        }
     }
 
     render() {
