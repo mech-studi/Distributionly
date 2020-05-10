@@ -103,7 +103,7 @@ class App extends Component {
             if (!containsObject(res, prevNotifications)) {
                 prevNotifications.push(res);
                     new Noty({
-                        text: `The auction for domain ${res.returnValues.domain} has ended, with the highest bid of ${res.returnValues.amount} wei!`,
+                        text: `The domain ${res.returnValues.domain} has been claimed, for ${res.returnValues.amount} wei!`,
                         timeout: false,
                     })
                     .on('onClick', () => {
@@ -136,6 +136,25 @@ class App extends Component {
                     }
             }
         });
+        contract.events.Withdraw({}, (err, res) => {
+            if (err) return;
+            if (!containsObject(res, prevNotifications)) {
+                prevNotifications.push(res);
+                if(res.returnValues.bidder == this.state.accounts[0]){
+                    new Noty({
+                        text: `Withdraw of value ${res.returnValues.amount} from the auction of ${res.returnValues.domain}`,
+                        timeout: false,
+                    })
+                    .on('onClick', () => {
+                        this.updateDomainInfoPanel(res.returnValues.domain, this);
+                    })
+                    .show();
+                    if(res.returnValues.domain == this.state.searchedDomain){
+                        this.updateDomainInfoPanel(this.state.searchedDomain, this);
+                    }
+                }
+            }
+        });
     };
 
     handleChange = function(e) {
@@ -165,29 +184,49 @@ class App extends Component {
     }
 
     handleAuctionState = function(res, ths){
+        // _domain,
+        // auctions[dh].highestBidder,
+        // auctions[dh].highestBid,
+        // auctions[dh].auctionEndTime,
+        // auctions[dh].claimed,
+        // auctions[dh].exists,
+        // accountHasReturns
         var n = Date.now();
         var end = res[3] + "000";
         console.log(n, end);
-        if(n > end){
-            var statusText;
-            var buyButtonText;
-            if(res["1"] == ths.state.accounts[0]){
-                statusText = "The auction has ended, and you won!";
-                buyButtonText = "Claim";
-            }else{
-                statusText = "The auction has ended, but you did not win!";
-                buyButtonText = "Withdraw";
+        if(res["5"]){//auction exists/existed
+            console.log("auction exists");
+            if(!res["4"]){//not claimed
+                console.log("auction is not claimed yet");
+                if(n > end){
+                    console.log("auction has ended");
+                    var statusText;
+                    var buyButtonText;
+                    if(res["1"] == ths.state.accounts[0]){
+                        statusText = "The auction has ended, and you won!";
+                        buyButtonText = "Claim";
+                    }else{
+                        statusText = "The auction has ended, but you did not win!";
+                        buyButtonText = "Withdraw";
+                    }
+                    ths.setState({
+                        domainStatusText: statusText,
+                        buyButtonText,
+                        highestBid: res["2"],
+                    });
+                }else{
+                    console.log("auction still ongoing");
+                    ths.setState({auctionEnd: parseInt(end), highestBid: res["2"],});
+                    ths.updateCountdown(parseInt(end), res["0"], ths);
+                }
+            }else{//claimed
+                if(res["6"]){
+                    ths.setState({buyButtonText: "Withdraw"});
+                    console.log("account still has pending returns");
+                }
             }
-            ths.setState({
-                domainStatusText: statusText,
-                buyButtonText,
-                highestBid: res["2"],
-            });
-            console.log("auction ended");
-        }else{
-            ths.setState({auctionEnd: parseInt(end), highestBid: res["2"],});
-            this.updateCountdown(parseInt(end), res["0"], ths);
         }
+
         console.log(res);
     }
 
@@ -196,7 +235,7 @@ class App extends Component {
         var domainStatusOptions = {
             "free" : `${this.state.inputValue} is available!`,
             "inauction": `${this.state.inputValue} is currently being auctioned off!`,
-            "registered" : `${this.state.inputValue} is already owned!`
+            "registered" : `${this.state.inputValue} is owned!`
         }
         var buyButtonTextOptions = {
             "free": "Bid",
@@ -229,18 +268,6 @@ class App extends Component {
             console.log(ths.state.accounts[0].toString());
             return res;
         })
-        .then((res)=>{ //get highest bid if in an auction
-            if(domainStatus == "inauction"){
-                return ths.state.contract.methods.getAuctionStateBid(ths.state.searchedDomain).call()
-                .then((res)=>{
-                    highestBid = res;
-                    console.log(res);
-                })
-                .catch((err)=>{
-                    console.log(err);
-                });
-            }
-        })
         .catch((err) => {
             console.log(err);
         });
@@ -255,15 +282,13 @@ class App extends Component {
             owner,
             searchedDomain: domainName
         });
-        if(domainStatus == "inauction"){
-            await ths.state.contract.methods.getAuctionState(ths.state.searchedDomain).call()
-            .then((res)=>{
-                this.handleAuctionState(res, ths);
-            })
-            .catch((err)=>{
-                console.log(err);
-            });
-        }
+        await ths.state.contract.methods.getAuctionState(ths.state.searchedDomain).call()
+        .then((res)=>{
+            this.handleAuctionState(res, ths);
+        })
+        .catch((err)=>{
+            console.log(err);
+        });
     }
 
     handleSearch = async function() {
@@ -335,12 +360,14 @@ class App extends Component {
             this.state.contract.methods.claim(this.state.searchedDomain).send({
                 from: this.state.accounts[0]
             })
-            .then(()=>{
+            .then((res)=>{
+                console.log(res);
+                console.log("claimed");
                 this.updateDomainInfoPanel(this.state.searchedDomain, this);
             })
             .catch((err)=>{console.log(err)});
         }else if(buttonText == "Withdraw"){
-            this.state.contract.methods.withdraw(this.state.searchedDomain).call()
+            this.state.contract.methods.withdraw(this.state.searchedDomain).send({from: this.state.accounts[0]})
             .then((res)=>{
                 console.log(res);
             })
@@ -359,7 +386,7 @@ class App extends Component {
             })
             .then((res)=>{
                 if(res.value){
-                    this.state.contract.methods.ConfigureDomain(this.state.searchedDomain, res.value[0], res.value[1]).send({
+                    this.state.contract.methods.configureDomain(this.state.searchedDomain, res.value[0], res.value[1]).send({
                         from: this.state.accounts[0]
                     })
                     .then(()=>{
@@ -381,11 +408,11 @@ class App extends Component {
                 < button id="main-search-button" type="button" name="button" onClick={ ()=> this.handleSearch()} > Search < /button>
                 <div id="domain-info" className = {!this.state.showDomainInfo ? "hide" : ""}>
                     <h1>{this.state.domainStatusText}</h1>
-                    <p className = {this.state.domainStatus == "inauction" ? "" : "hide"}>Highest bid: {this.state.highestBid} wei</p>
-                    <p className = {this.state.domainStatus == "inauction" ? "" : "hide"}>Remaining time: {this.state.remainingTime} seconds</p>
-                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}>Associated IPv4: {this.state.ipv4}</p>
-                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}>Associated IPv6: {this.state.ipv6}</p>
-                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}>Owner: {this.state.owner}</p>
+                    <p className = {this.state.domainStatus == "inauction" ? "" : "hide"}><span className = "alignLeft">Highest bid: </span><span className = "alignRight">{this.state.highestBid} wei</span></p>
+                    <p className = {this.state.domainStatus == "inauction" ? "" : "hide"}><span className = "alignLeft">Remaining time: </span><span className = "alignRight">{this.state.remainingTime} seconds</span></p>
+                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}><span className = "alignLeft">Associated IPv4: </span><span className = "alignRight">{this.state.ipv4}</span></p>
+                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}><span className = "alignLeft">Associated IPv6: </span><span className = "alignRight">{this.state.ipv6}</span></p>
+                    <p className = {this.state.domainStatus == "registered" ? "" : "hide"}><span className = "alignLeft">Owner: </span><span className = "alignRight">{this.state.owner}</span></p>
                     < button id="main-buy-button" className = {this.state.buyButtonText == "" ? "hide" : ""} type="button" name="button" onClick={ ()=> this.handleBuy()} > {this.state.buyButtonText} < /button>
                 </div>
             < / div>
