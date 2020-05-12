@@ -25,71 +25,98 @@ contract DomainKeeper {
     function calcDomainState(bytes32 dHash) private view returns (string memory) {
         if(domains[dHash].exists && domains[dHash].owner != address(0)) {
             return "registered";
-        }
-
-        else if(!domains[dHash].exists && auctions[dHash].exists && !auctions[dHash].ended) {
-
+        } else if(!domains[dHash].exists && auctions[dHash].exists && now <= auctions[dHash].auctionEndTime) {
             return "inauction";
-        }
-        else{
+        } else if(!domains[dHash].exists && auctions[dHash].exists && now > auctions[dHash].auctionEndTime) {
+            return "toberegistered";
+        } else{
             return "free";
         }
-
     }
 
     /// Function the user will call to modify the IPS
     /// Only the owner of the domain is Allowed to change this information.
-    function ConfigureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
-        //require(condition, message);(auctions[dh].owner== msg....
+    function configureDomain(string memory _domainame, string memory _Ipv4, string memory _Ipv6) public payable {
         bytes32 dh = hashDomain(_domainame);
-        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+
+        require(domains[dh].exists, "Domain does not exist.");
+        require(keccak256(abi.encodePacked(calcDomainState(dh))) == keccak256(abi.encodePacked("registered")), "Domain is not yet registered.");
         require(domains[dh].owner == msg.sender, "Error, you are not the owner of this domain");
+
         domains[dh].Ipv4 = _Ipv4;
         domains[dh].Ipv6 = _Ipv6;
     }
 
     /// Function that retunrs the information about a especifict domain
-   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner)    {
+   function getDomainInfo(string memory _domainame) public view returns (string memory state, string memory ipv4, string memory ipv6, address owner) {
         bytes32 dh = hashDomain(_domainame);
         return (calcDomainState(dh), domains[dh].Ipv4, domains[dh].Ipv6, domains[dh].owner);
-
     }
-    /// The claim methos is gonna save the new domains with the respective owner.
-    function claim(string memory _domainame) public payable {
+
+    /// The claim method is ending the auction and registers the domain name with the owner.
+    function claim(string memory _domainame) public returns (bool) {
         bytes32 dh = hashDomain(_domainame);
-        require(auctions[dh].highestBidder == msg.sender, "You are not the owner of this domain");
+
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
+        require(auctions[dh].highestBidder == msg.sender, "You are not the winner of the auction.");
+        require(now >= auctions[dh].auctionEndTime, "Auction is still running.");
+        require(!auctions[dh].claimed, "Auction is already claimed.");
+
+        // End Auction
+        auctions[dh].claimed = true;
+        emit AuctionEnded(_domainame, auctions[dh].highestBidder, auctions[dh].highestBid);
+
+        // Register Domain
         domains[dh].domainname = _domainame;
         domains[dh].owner = msg.sender;
         domains[dh].exists = true;
+
+        // Return pendingReturns
+        uint256 amount = auctions[dh].pendingReturns[msg.sender];
+        if (amount > 0) {
+            auctions[dh].pendingReturns[msg.sender] = 0;
+
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                auctions[dh].pendingReturns[msg.sender] = amount;
+                return false;
+            }
+            emit Withdraw(_domainame, msg.sender, amount);
+        }
+
+        return true;
     }
 
     /// This function is here only for checking the code works:
-    function addDomain(string memory _domainame, address _owner) public {
-        bytes32 dh = hashDomain(_domainame);
-        domains[dh].domainname = _domainame;
-        domains[dh].owner = _owner;
-        domains[dh].exists = true;
-
-    }
+    // function addDomain(string memory _domainame, address _owner) public {
+    //     bytes32 dh = hashDomain(_domainame);
+    //     domains[dh].domainname = _domainame;
+    //     domains[dh].owner = _owner;
+    //     domains[dh].exists = true;
+    // }
 
     /// Retunrs the address of the owner of a domain:
-    function getOwner(string memory _domainame) public view returns (address) {
-        bytes32 dh = hashDomain(_domainame);
-        require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
-        return domains[dh].owner;
-    }
+    // function getOwner(string memory _domainame) public view returns (address) {
+    //     bytes32 dh = hashDomain(_domainame);
+    //     require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
+    //     return domains[dh].owner;
+    // }
 
     // ========================================================
     // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
     // ========================================================
 
+    uint constant AUCTION_MIN_PRICE_IN_WEI = 5000000000000000000; // is 5 Ether
+    uint constant AUCTION_DURATION = 1 minutes;
+    uint constant AUCTION_EXTENSION_TIME = 20 seconds;
+
     struct iAuction {
         uint256 auctionEndTime;
         address highestBidder;
         uint256 highestBid;
         mapping(address => uint256) pendingReturns; // Allowed withdrawals of previous bids
-        bool ended; // Set to true at the end, disallows any change.
+        bool claimed;
         bool exists;
     }
 
@@ -98,7 +125,9 @@ contract DomainKeeper {
     // Auction Events
     event AuctionStarted(string domain, bytes32 dHash, address account, uint256 amount);
     event AuctionEnded(string domain, address winner, uint256 amount);
+    event AuctionExtended(string domain, uint extensionTime, uint newEndTime);
     event HighestBidIncreased(string domain, address bidder, uint256 amount);
+    event Withdraw(string domain, address bidder, uint256 amount);
 
 
     /// Bid on the auction with the value sent together with this transaction.
@@ -106,22 +135,34 @@ contract DomainKeeper {
     function bid(string memory _domain) public payable {
         bytes32 dh = hashDomain(_domain);
 
+        // Check min bid value.
+        require(AUCTION_MIN_PRICE_IN_WEI <= msg.value, "Minimum bid for an auction is 5 Ethers.");
+
+        // Check domain state, cannot be registered domain.
+        require(keccak256(abi.encodePacked(calcDomainState(dh))) != keccak256(abi.encodePacked("registered")), "Domain is not free for auction.");
+
         // create new auction if no entry is available.
         if (!auctions[dh].exists) {
-            auctions[dh].auctionEndTime = now + 1 minutes;
+            auctions[dh].auctionEndTime = now + AUCTION_DURATION;
             auctions[dh].highestBidder = msg.sender;
             auctions[dh].highestBid = msg.value;
             auctions[dh].exists = true;
-            auctions[dh].ended = false;
+            auctions[dh].claimed = false;
 
             emit AuctionStarted(_domain, dh, msg.sender, msg.value);
             return;
         }
 
-        //require(condition, message);(auctions[dh].ended)
+        // Revert if auction already claimed
+        // require(!auctions[dh].claimed, "Auction already claimed.");
 
-        // Revert the call if the bidding period is over.
-        require(now <= auctions[dh].auctionEndTime, "Auction already ended.");
+       // Revert if auction already ended
+        require(now <= auctions[dh].auctionEndTime, "Action already ended.");
+
+        // Extend auction.
+        if(now + AUCTION_EXTENSION_TIME >= auctions[dh].auctionEndTime){
+            extendAuction(_domain, AUCTION_EXTENSION_TIME);
+        }
 
         // If the bid is not higher, send the money back.
         require(msg.value > auctions[dh].highestBid, "There already is a higher bid.");
@@ -132,43 +173,45 @@ contract DomainKeeper {
         }
         auctions[dh].highestBidder = msg.sender;
         auctions[dh].highestBid = msg.value;
-        auctions[dh].auctionEndTime = now + 1 minutes;
 
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
-    function withdraw(string memory _domain) public {
+    /// Withraw bids that did not win.
+    function withdraw(string memory _domain) public returns (bool)  {
         bytes32 dh = hashDomain(_domain);
 
-        // require(auctions[dh].exists, "No runnning auction for this domain.");
-
-        // might not be so important?
-        // No withdrawel during a running auction
-        // require(auctions[dh].ended, "Auction still running.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
 
         uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
-            // Set this to zero to prevent double spending.
+            // It is important to set this to zero because the recipient
+            // can call this function again as part of the receiving call
+            // before `send` returns.
             auctions[dh].pendingReturns[msg.sender] = 0;
-            msg.sender.transfer(amount);
+
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                auctions[dh].pendingReturns[msg.sender] = amount;
+                return false;
+            }
+
+            emit Withdraw(_domain, msg.sender, amount);
         }
+        return true;
     }
 
-    /// End the auction and send the highest bid to the beneficiary.
-    function auctionEnd(string memory _domain) public {
+    /// Extend the auction time.
+    function extendAuction(string memory _domain, uint _extensionTime) internal {
         bytes32 dh = hashDomain(_domain);
 
         // 1. Conditions
-        require(auctions[dh].exists, "No such auction esists.");
-        require(now >= auctions[dh].auctionEndTime, "Auction not yet ended.");
-        require(!auctions[dh].ended, "auctionEnd has already been called.");
+        require(auctions[dh].exists, "No existing auction for wanted domain.");
+        require(now <= auctions[dh].auctionEndTime, "Auction not yet ended.");
 
         // 2. Effects
-        auctions[dh].ended = true;
-        emit AuctionEnded(_domain, auctions[dh].highestBidder, auctions[dh].highestBid);
-
-        // 3. Interaction
-        //address(this).transfer(auctions[dHash].highestBid);
+        auctions[dh].auctionEndTime += _extensionTime;
+        emit AuctionExtended(_domain, _extensionTime, auctions[dh].auctionEndTime);
     }
 
     /// Lets you check the state of an auction and returns the following attributes:
@@ -176,34 +219,41 @@ contract DomainKeeper {
     /// - Address of highest bidder
     /// - Amount of the highest bid
     /// - Auction end time
-    /// - Flag indicating if ended or not
+    /// - Flag indicating if domain was claimed or not
     /// - Flag indicating if exists or not
-    function getAuctionState(string memory _domain) public view returns (string memory, address, uint256, uint256, bool, bool) {
+    function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists, bool accountHasReturns) {
         bytes32 dh = hashDomain(_domain);
-        
+
+        bool accountHasReturns = false;
+        if(auctions[dh].pendingReturns[msg.sender] > 0 ) {
+            accountHasReturns = true;
+        }
+
         return (
             _domain,
             auctions[dh].highestBidder,
             auctions[dh].highestBid,
             auctions[dh].auctionEndTime,
-            auctions[dh].ended,
-            auctions[dh].exists
+            auctions[dh].claimed,
+            auctions[dh].exists,
+            accountHasReturns
         );
     }
 
-    function getAuctionStateBidder(string memory _domain) public view returns (address) {
-        return (auctions[hashDomain(_domain)].highestBidder);
-    }
+    // function getAuctionStateBidder(string memory _domain) public view returns (address) {
+    //     return (auctions[hashDomain(_domain)].highestBidder);
+    // }
 
-    function getAuctionStateBid(string memory _domain) public view returns (uint256) {
-        return (auctions[hashDomain(_domain)].highestBid);
-    }
+    // function getAuctionStateBid(string memory _domain) public view returns (uint256) {
+    //     return (auctions[hashDomain(_domain)].highestBid);
+    // }
 
-    function getAuctionStateExists(string memory _domain) public view returns (bool) {
-        return (auctions[hashDomain(_domain)].exists);
-    }
+    // function getAuctionStateExists(string memory _domain) public view returns (bool) {
+    //     return (auctions[hashDomain(_domain)].exists);
+    // }
 
-    function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
-        return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
-    }
+    // function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
+    //     return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
+    // }
+
 }
