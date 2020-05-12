@@ -1,5 +1,4 @@
 build/
+client/node_modules/
 node_modules/
 .vscode/
-truffle-config.js
-package-lock.json

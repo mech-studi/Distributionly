@@ -230,7 +230,7 @@ contract DomainKeeper {
         }
 
         return (
-            _domain, 
+            _domain,
             auctions[dh].highestBidder,
             auctions[dh].highestBid, 
             auctions[dh].auctionEndTime, 
