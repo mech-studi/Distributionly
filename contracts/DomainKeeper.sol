@@ -71,7 +71,7 @@ contract DomainKeeper {
         domains[dh].owner = msg.sender;
         domains[dh].exists = true;
 
-        // Return pendingReturns        
+        // Return pendingReturns
         uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
             auctions[dh].pendingReturns[msg.sender] = 0;
@@ -177,7 +177,7 @@ contract DomainKeeper {
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
-    /// Withraw bids that did not win. 
+    /// Withraw bids that did not win.
     function withdraw(string memory _domain) public returns (bool)  {
         bytes32 dh = hashDomain(_domain);
 
@@ -224,19 +224,19 @@ contract DomainKeeper {
     function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists, bool accountHasReturns) {
         bytes32 dh = hashDomain(_domain);
 
-        bool accountHasReturns = false;
+        bool hasReturns = false;
         if(auctions[dh].pendingReturns[msg.sender] > 0 ) {
-            accountHasReturns = true;
+            hasReturns = true;
         }
 
         return (
             _domain,
             auctions[dh].highestBidder,
             auctions[dh].highestBid, 
-            auctions[dh].auctionEndTime, 
+            auctions[dh].auctionEndTime,
             auctions[dh].claimed,
             auctions[dh].exists,
-            accountHasReturns
+            hasReturns
         );
     }
 
@@ -252,8 +252,8 @@ contract DomainKeeper {
     //     return (auctions[hashDomain(_domain)].exists);
     // }
 
-    // function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
-    //     return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
-    // }
+     function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
+         return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
+     }
 
 }

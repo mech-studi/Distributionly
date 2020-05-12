@@ -126,7 +126,7 @@ class App extends Component {
                     }).show();
                     console.log(res.returnValues.domain, this.state.searchedDomain);
                     if(res.returnValues.domain == this.state.searchedDomain){
-                        this.state.contract.methods.getAuctionState(this.state.searchedDomain).call()
+                        this.state.contract.methods.getAuctionState(this.state.searchedDomain).call({from: this.state.accounts[0]})
                         .then((res)=>{
                             this.handleAuctionState(res, this);
                         })
@@ -206,8 +206,13 @@ class App extends Component {
                         statusText = "The auction has ended, and you won!";
                         buyButtonText = "Claim";
                     }else{
-                        statusText = "The auction has ended, but you did not win!";
-                        buyButtonText = "Withdraw";
+                        if(res["6"]){
+                            statusText = "The auction has ended, but you did not win!";
+                            buyButtonText = "Withdraw";
+                        }else{
+                            statusText = "The auction has ended!";
+                            buyButtonText = "";
+                        }
                     }
                     ths.setState({
                         domainStatusText: statusText,
@@ -216,7 +221,12 @@ class App extends Component {
                     });
                 }else{
                     console.log("auction still ongoing");
-                    ths.setState({auctionEnd: parseInt(end), highestBid: res["2"],});
+                    if(res["1"]==ths.state.accounts[0]){
+                        var currentText = ths.state.domainStatusText;
+                        ths.setState({auctionEnd: parseInt(end), highestBid: res["2"], domainStatusText: currentText + " You are the highest bidder!"});
+                    }else{
+                        ths.setState({auctionEnd: parseInt(end), highestBid: res["2"]});
+                    }
                     ths.updateCountdown(parseInt(end), res["0"], ths);
                 }
             }else{//claimed
@@ -226,7 +236,11 @@ class App extends Component {
                 }
             }
         }
-
+        ths.state.contract.methods.getAuctionStateReturns(ths.state.searchedDomain).call({from: ths.state.accounts[0]})
+        .then((rs)=>{
+            console.log(rs);
+        })
+        .catch();
         console.log(res);
     }
 
@@ -282,7 +296,7 @@ class App extends Component {
             owner,
             searchedDomain: domainName
         });
-        await ths.state.contract.methods.getAuctionState(ths.state.searchedDomain).call()
+        await ths.state.contract.methods.getAuctionState(ths.state.searchedDomain).call({from: ths.state.accounts[0]})
         .then((res)=>{
             this.handleAuctionState(res, ths);
         })
