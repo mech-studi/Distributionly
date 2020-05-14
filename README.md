@@ -43,16 +43,11 @@ The system must be able to resolve human-readable names to technical addresses. 
 
 1. The core functionality must be implemented and executed entirely within Smart Contracts (SC).
 
-    - Manage top-level domains
-    - Manage subdomains and zone file entries
-    - Resolve names? 
+    - Manage and resolve domain names 
 
 1. The SC must implement an economic aspect, e.g., a payment system, incentives, gambling, or any economy-related functionality.
 
-    - Pay for subdomain entries
-    - Pay for subdomain entry certification?
-    - Buy a subdomain from someone
-    - Bid for a subdomain
+    - Auction system to aquire a domain
 
 1. The user must interact with the DApp via a Graphical User Interface (GUI), for example, a Web-based one.
 
@@ -60,5 +55,5 @@ The system must be able to resolve human-readable names to technical addresses. 
 
 1. The group must deliver a self-contained report documenting the SC, its operation, and the source code.
 
-    - OK =.=
+    - OK
 
