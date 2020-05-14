@@ -33,23 +33,7 @@
     - returns the information of the domain *state, ips, owner of the domain* , being "state" between these possible values {*registered, inauction, toberegistered, free*}
 - getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists, bool accountHasReturns)
     - returns the current state of an auction
-
-## Brief Description & Ideation
-
-The goal of this project is to rebuild the basic functionality of a Domain Name System (DNS) based on a blockchain and smart contracts.
-
-![Use Case Diagram](./doc/images/Distributionly-Diagrams-UseCase.png "Use Cases")
-
-The system must be able to resolve human-readable names to technical addresses. A domain owner can register his subdomain to a known top level domain. A subdomain can have other subdomains. Optionally the system could allow a domain abuse rating system or a domain certification service (note that X.509 PKI functionality is out of scope). 
-
-- A simple domain abuse reporting system could be that everyone except the domain owner report incorrect behavior. The domain owner can flush all reported missusages and reset his domain `TODO: refine reporting concept`.
-- The focus lies on IPv4 and IPv6 addresses. Other address schemes are out of scope for this project. Technical top-level domains are managed by the system administrator.
-- The name resolver functionality can be implemented in an external python script or a smart contract. 
-- The registration and the certification of a subdomain costs ether. Can we buy or bid on a domain name? `TODO: refine economic concept`.
-- Bootstraping and registration of top level domains is out of scope. 
-
-
-![Container Diagram](./doc/images/Distributionly-Diagrams-C2-Container.png "Container Diagram")
+    
 
 ## Addressing BCOLN Requirements
 
