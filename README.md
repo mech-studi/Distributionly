@@ -1,6 +1,18 @@
 #  Distributionly a Blockchain-based DNS
 
 `This project is an assignment for the BCOLN lecture at the University of Zurich.`
+## Installation and Deployment
+- Set up local blockchain on port 7545
+- Download the metamask extension for your browser
+- Sync local blockchain to your metamask account through the seed phrases
+- Make sure node.js and truffle are downloaded
+- After navigating to the client subfolder in console: 
+    - npm install
+    - npm start
+    - cd ..
+    - truffle migrate --reset --network develop
+- Navigate to localhost:3000 in your browser
+- Enjoy!
 
 ## Contract API
 
