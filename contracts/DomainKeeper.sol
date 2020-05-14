@@ -87,21 +87,6 @@ contract DomainKeeper {
         return true;
     }
 
-    /// This function is here only for checking the code works:
-    // function addDomain(string memory _domainame, address _owner) public {
-    //     bytes32 dh = hashDomain(_domainame);
-    //     domains[dh].domainname = _domainame;
-    //     domains[dh].owner = _owner;
-    //     domains[dh].exists = true;
-    // }
-
-    /// Retunrs the address of the owner of a domain:
-    // function getOwner(string memory _domainame) public view returns (address) {
-    //     bytes32 dh = hashDomain(_domainame);
-    //     require(bytes(domains[dh].domainname).length != 0, "not domain register with that name");
-    //     return domains[dh].owner;
-    // }
-
     // ========================================================
     // AUCTION STUFF
     // Based on: https://solidity.readthedocs.io/en/v0.6.6/solidity-by-example.html#simple-open-auction
@@ -153,9 +138,6 @@ contract DomainKeeper {
             return;
         }
 
-        // Revert if auction already claimed
-        // require(!auctions[dh].claimed, "Auction already claimed.");
-
        // Revert if auction already ended
         require(now <= auctions[dh].auctionEndTime, "Action already ended.");
 
@@ -177,7 +159,8 @@ contract DomainKeeper {
         emit HighestBidIncreased(_domain, msg.sender, msg.value);
     }
 
-    /// Withraw bids that did not win.
+    /// Withraw obsolete bids.
+    /// Bids that are overbidden can be collected back by the bidder.
     function withdraw(string memory _domain) public returns (bool)  {
         bytes32 dh = hashDomain(_domain);
 
@@ -185,9 +168,6 @@ contract DomainKeeper {
 
         uint256 amount = auctions[dh].pendingReturns[msg.sender];
         if (amount > 0) {
-            // It is important to set this to zero because the recipient
-            // can call this function again as part of the receiving call
-            // before `send` returns.
             auctions[dh].pendingReturns[msg.sender] = 0;
 
             if (!msg.sender.send(amount)) {
@@ -201,7 +181,7 @@ contract DomainKeeper {
         return true;
     }
 
-    /// Extend the auction time.
+    /// Extend the auction time by the given time.
     function extendAuction(string memory _domain, uint _extensionTime) internal {
         bytes32 dh = hashDomain(_domain);
 
@@ -221,6 +201,7 @@ contract DomainKeeper {
     /// - Auction end time
     /// - Flag indicating if domain was claimed or not
     /// - Flag indicating if exists or not
+    /// - Flag indicating if caller has pending returns
     function getAuctionState(string memory _domain) public view returns (string memory domain, address higestBidder, uint256 highestBid, uint256 auctionEndTime, bool claimed, bool exists, bool accountHasReturns) {
         bytes32 dh = hashDomain(_domain);
 
@@ -239,18 +220,6 @@ contract DomainKeeper {
             hasReturns
         );
     }
-
-    // function getAuctionStateBidder(string memory _domain) public view returns (address) {
-    //     return (auctions[hashDomain(_domain)].highestBidder);
-    // }
-
-    // function getAuctionStateBid(string memory _domain) public view returns (uint256) {
-    //     return (auctions[hashDomain(_domain)].highestBid);
-    // }
-
-    // function getAuctionStateExists(string memory _domain) public view returns (bool) {
-    //     return (auctions[hashDomain(_domain)].exists);
-    // }
 
      function getAuctionStateReturns(string memory _domain) public view returns (uint256) {
          return (auctions[hashDomain(_domain)].pendingReturns[msg.sender]);
