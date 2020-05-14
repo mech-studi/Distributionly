@@ -21,7 +21,7 @@ contract DomainKeeper {
     }
 
     /// Figures out the current state of a domain
-    /// Possible states are: registered, inauction or free
+    /// Possible states are: registered, inauction, toberegistered or free
     function calcDomainState(bytes32 dHash) private view returns (string memory) {
         if(domains[dHash].exists && domains[dHash].owner != address(0)) {
             return "registered";
