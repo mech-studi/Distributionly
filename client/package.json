@@ -7,9 +7,9 @@
     "noty": "^3.2.0-beta",
     "react": "16.11.0",
     "react-dom": "16.11.0",
-    "react-scripts": "3.2.0",
+    "react-scripts": "5.0.1",
     "sweetalert2": "^9.10.12",
-    "web3": "1.2.2"
+    "web3": "4.16.0"
   },
   "scripts": {
     "start": "react-scripts start",
